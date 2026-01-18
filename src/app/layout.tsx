@@ -7,14 +7,25 @@ import StyledComponentsRegistry from "@/lib/antd-registry";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+  preload: false,
+});
+
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
+  display: "swap",
+  preload: false,
 });
+
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {

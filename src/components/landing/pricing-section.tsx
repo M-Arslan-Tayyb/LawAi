@@ -71,6 +71,7 @@ const plans = [
     buttonVariant: "outline" as const,
   },
 ];
+console.log(plans);
 
 export function PricingSection() {
   const sectionRef = useRef<HTMLElement>(null);

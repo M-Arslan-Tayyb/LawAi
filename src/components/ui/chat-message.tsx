@@ -18,7 +18,7 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
     await navigator.clipboard.writeText(message.content);
     setIsCopied(true);
     toast.success("Copied to clipboard!");
-    setTimeout(() => setIsCopied(false), 2000);
+    setTimeout(() => setIsCopied(false), 1500);
   };
 
   return (
@@ -26,7 +26,7 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
       className={cn(
         "flex gap-3 group",
         isAssistant ? "flex-row" : "flex-row-reverse",
-        className
+        className,
       )}
     >
       {/* Avatar */}
@@ -35,35 +35,39 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
           isAssistant
             ? "bg-primary/10 text-primary"
-            : "bg-accent text-foreground"
+            : "bg-accent text-foreground",
         )}
       >
         {isAssistant ? <SparklesIcon size={16} /> : <UserIcon size={16} />}
       </div>
 
-      {/* Message Content */}
+      {/* Message Bubble */}
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 relative",
+          "relative max-w-[80%] rounded-2xl px-4 py-3",
           isAssistant
             ? "bg-accent text-foreground rounded-tl-none"
-            : "bg-primary text-primary-foreground rounded-tr-none"
+            : "bg-primary text-primary-foreground rounded-tr-none",
         )}
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">
           {message.content}
         </p>
-        <button
-          onClick={handleCopy}
-          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-opacity"
-          title="Copy message"
-        >
-          {isCopied ? (
-            <CheckIcon size={14} className="text-green-500" />
-          ) : (
-            <CopyIcon size={14} />
-          )}
-        </button>
+
+        {/* Copy Button – ChatGPT style */}
+        {isAssistant && (
+          <button
+            onClick={handleCopy}
+            className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 rounded-md p-1.5 transition-opacity hover:bg-black/10 dark:hover:bg-white/10"
+            title="Copy"
+          >
+            {isCopied ? (
+              <CheckIcon size={14} className="text-green-500" />
+            ) : (
+              <CopyIcon size={14} className="text-muted-foreground" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

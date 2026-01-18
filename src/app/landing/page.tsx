@@ -1,6 +1,6 @@
 "use client"
 
-import { ThreeScene, HeroSection, FeaturesSection, StatsSection, CTASection, Footer } from "@/components/landing"
+import { ThreeScene, HeroSection, FeaturesSection, StatsSection, PricingSection, CTASection, Footer } from "@/components/landing"
 
 export default function LandingPage() {
   return (
@@ -15,6 +15,7 @@ export default function LandingPage() {
         <HeroSection />
         <FeaturesSection />
         <StatsSection />
+        <PricingSection />
         <CTASection />
         <Footer />
       </div>

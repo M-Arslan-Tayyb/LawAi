@@ -18,6 +18,7 @@ import {
   UserIcon,
   FamilyLawIcon,
   ImmigrationLawIcon,
+  CreditCardIcon,
 } from "@/lib/icons";
 import { ROUTES } from "@/lib/constants";
 
@@ -69,6 +70,12 @@ const menuItems = [
     icon: SummaryIcon,
     href: ROUTES.DOCUMENT_SUMMARIZER,
   },
+  {
+    key: "billing",
+    label: "Payment & Billings",
+    icon: CreditCardIcon,
+    href: ROUTES.BILLING,
+  },
 ];
 
 export function MainSidebar({
@@ -77,26 +84,6 @@ export function MainSidebar({
 }: MainSidebarProps) {
   const pathname = usePathname();
   const [isHovered, setIsHovered] = useState(false);
-
-  const userMenuItems: MenuProps["items"] = [
-    {
-      key: "profile",
-      label: "Profile",
-      icon: <UserIcon size={16} />,
-    },
-    {
-      key: "settings",
-      label: "Settings",
-      icon: <SettingsIcon size={16} />,
-    },
-    { type: "divider" },
-    {
-      key: "logout",
-      label: "Sign Out",
-      icon: <LogoutIcon size={16} />,
-      danger: true,
-    },
-  ];
 
   return (
     <aside

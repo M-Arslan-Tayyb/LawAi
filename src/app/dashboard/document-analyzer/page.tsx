@@ -1,75 +1,81 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { SessionSidebar } from "@/components/ui/session-sidebar"
-import { FileUpload } from "@/components/ui/file-upload"
-import { AiChatInput } from "@/components/ui/ai-chat-input"
-import { ChatMessage } from "@/components/ui/chat-message"
-import { FullscreenToggle } from "@/components/ui/fullscreen-toggle"
-import { Button } from "@/components/ui/button"
-import { mockAnalyzerSessions } from "@/lib/data"
-import { AnalyzeIcon, SparklesIcon, FileIcon } from "@/lib/icons"
-import type { AnalyzerSession, ChatMessage as ChatMessageType } from "@/lib/types"
-import { toast } from "sonner"
-import { generateId, cn } from "@/lib/utils"
+import { useState, useRef, useEffect } from "react";
+import { SessionSidebar } from "@/components/ui/session-sidebar";
+import { FileUpload } from "@/components/ui/file-upload";
+import { AiChatInput } from "@/components/ui/ai-chat-input";
+import { ChatMessage } from "@/components/ui/chat-message";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { Button } from "@/components/ui/button";
+import { mockAnalyzerSessions } from "@/lib/data";
+import { AnalyzeIcon, SparklesIcon, FileIcon } from "@/lib/icons";
+import type {
+  AnalyzerSession,
+  ChatMessage as ChatMessageType,
+} from "@/lib/types";
+import { toast } from "sonner";
+import { generateId, cn } from "@/lib/utils";
 
 export default function DocumentAnalyzerPage() {
-  const [sessions, setSessions] = useState<AnalyzerSession[]>(mockAnalyzerSessions)
-  const [activeSession, setActiveSession] = useState<AnalyzerSession | null>(null)
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [isUploaded, setIsUploaded] = useState(false)
-  const [messages, setMessages] = useState<ChatMessageType[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [sessions, setSessions] =
+    useState<AnalyzerSession[]>(mockAnalyzerSessions);
+  const [activeSession, setActiveSession] = useState<AnalyzerSession | null>(
+    null
+  );
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isUploaded, setIsUploaded] = useState(false);
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
 
   const handleNewSession = () => {
-    setActiveSession(null)
-    setUploadedFiles([])
-    setIsUploaded(false)
-    setMessages([])
-    toast.success("New analysis session started")
-  }
+    setActiveSession(null);
+    setUploadedFiles([]);
+    setIsUploaded(false);
+    setMessages([]);
+    toast.success("New analysis session started");
+  };
 
   const handleSessionSelect = (session: any) => {
-    setActiveSession(session as AnalyzerSession)
-    setUploadedFiles([])
-    setIsUploaded(false)
-    setMessages([])
-    toast.success(`Loaded session: ${session.title}`)
-  }
+    setActiveSession(session as AnalyzerSession);
+    setUploadedFiles([]);
+    setIsUploaded(false);
+    setMessages([]);
+    toast.success(`Loaded session: ${session.title}`);
+  };
 
   const handleDeleteSession = (sessionId: string) => {
-    setSessions(sessions.filter((s) => s.id !== sessionId))
+    setSessions(sessions.filter((s) => s.id !== sessionId));
     if (activeSession?.id === sessionId) {
-      setActiveSession(null)
-      setIsUploaded(false)
-      setMessages([])
+      setActiveSession(null);
+      setIsUploaded(false);
+      setMessages([]);
     }
-  }
+  };
 
   const handleFilesChange = (files: File[]) => {
-    setUploadedFiles(files)
-  }
+    setUploadedFiles(files);
+  };
 
   const handleUpload = async () => {
     if (uploadedFiles.length === 0) {
-      toast.error("Please upload at least one document")
-      return
+      toast.error("Please upload at least one document");
+      return;
     }
 
-    setIsLoading(true)
-    toast.info("Processing your documents...")
+    setIsLoading(true);
+    toast.info("Processing your documents...");
 
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const newSession: AnalyzerSession = {
       id: generateId(),
@@ -79,22 +85,30 @@ export default function DocumentAnalyzerPage() {
       type: "analyzer",
       documents: [],
       conversation: [],
-    }
-    setSessions([newSession, ...sessions])
-    setActiveSession(newSession)
+    };
+    setSessions([newSession, ...sessions]);
+    setActiveSession(newSession);
 
     const initialMessage: ChatMessageType = {
       id: generateId(),
       role: "assistant",
-      content: `I've analyzed your document${uploadedFiles.length > 1 ? "s" : ""}: ${uploadedFiles.map((f) => f.name).join(", ")}. This appears to be a legal contract containing standard clauses for confidentiality, terms of engagement, and liability provisions. What would you like to know about ${uploadedFiles.length > 1 ? "these documents" : "this document"}?`,
+      content: `I've analysed your document${
+        uploadedFiles.length > 1 ? "s" : ""
+      }: ${uploadedFiles
+        .map((f) => f.name)
+        .join(
+          ", "
+        )}. This appears to be a legal contract containing standard clauses for confidentiality, terms of engagement, and liability provisions. What would you like to know about ${
+        uploadedFiles.length > 1 ? "these documents" : "this document"
+      }?`,
       timestamp: new Date(),
-    }
-    setMessages([initialMessage])
+    };
+    setMessages([initialMessage]);
 
-    setIsUploaded(true)
-    setIsLoading(false)
-    toast.success("Documents ready for analysis!")
-  }
+    setIsUploaded(true);
+    setIsLoading(false);
+    toast.success("Documents ready for analysis!");
+  };
 
   const handleSendMessage = async (content: string) => {
     const userMessage: ChatMessageType = {
@@ -102,16 +116,19 @@ export default function DocumentAnalyzerPage() {
       role: "user",
       content,
       timestamp: new Date(),
-    }
-    setMessages((prev) => [...prev, userMessage])
+    };
+    setMessages((prev) => [...prev, userMessage]);
 
-    setIsLoading(true)
+    setIsLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    let aiResponse = ""
+    let aiResponse = "";
 
-    if (content.toLowerCase().includes("risk") || content.toLowerCase().includes("concern")) {
+    if (
+      content.toLowerCase().includes("risk") ||
+      content.toLowerCase().includes("concern")
+    ) {
       aiResponse = `Based on my analysis of the document, I've identified several potential risk areas:
 
 1. **Liability Clause (Section 5.2)**: The limitation of liability cap may be insufficient for high-value transactions. Consider negotiating a higher cap or including specific carve-outs for gross negligence.
@@ -120,8 +137,11 @@ export default function DocumentAnalyzerPage() {
 
 3. **Intellectual Property (Section 7)**: The IP assignment clause is quite broad. Ensure this aligns with your business needs, particularly regarding any pre-existing IP.
 
-Would you like me to elaborate on any of these points?`
-    } else if (content.toLowerCase().includes("summary") || content.toLowerCase().includes("overview")) {
+Would you like me to elaborate on any of these points?`;
+    } else if (
+      content.toLowerCase().includes("summary") ||
+      content.toLowerCase().includes("overview")
+    ) {
       aiResponse = `Here's a summary of the key points in this document:
 
 **Document Type**: Service Agreement
@@ -135,7 +155,7 @@ Would you like me to elaborate on any of these points?`
 - Payment Terms: Net 30 days
 - Governing Law: State of California
 
-Is there any specific section you'd like me to explain in more detail?`
+Is there any specific section you'd like me to explain in more detail?`;
     } else {
       aiResponse = `Based on my analysis of your uploaded document, I can provide the following insights regarding your question:
 
@@ -144,7 +164,7 @@ The document appears to be well-structured and follows standard legal convention
 Would you like me to:
 1. Provide a detailed analysis of any specific section?
 2. Identify potential areas for negotiation?
-3. Compare this document against standard industry practices?`
+3. Compare this document against standard industry practices?`;
     }
 
     const aiMessage: ChatMessageType = {
@@ -152,10 +172,10 @@ Would you like me to:
       role: "assistant",
       content: aiResponse,
       timestamp: new Date(),
-    }
-    setMessages((prev) => [...prev, aiMessage])
-    setIsLoading(false)
-  }
+    };
+    setMessages((prev) => [...prev, aiMessage]);
+    setIsLoading(false);
+  };
 
   return (
     <div className={cn("flex h-full", isFullscreen && "fullscreen-mode")}>
@@ -176,10 +196,17 @@ Would you like me to:
         {/* Module Header */}
         <div className="flex items-center justify-between border-b border-border bg-background px-4 py-3 lg:px-6">
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Document Analyzer</h1>
-            <p className="text-sm text-muted-foreground">Upload documents and ask AI-powered questions</p>
+            <h1 className="text-lg font-semibold text-foreground">
+              Document Analyzer
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Upload documents and ask AI-powered questions
+            </p>
           </div>
-          <FullscreenToggle isFullscreen={isFullscreen} onToggle={() => setIsFullscreen(!isFullscreen)} />
+          <FullscreenToggle
+            isFullscreen={isFullscreen}
+            onToggle={() => setIsFullscreen(!isFullscreen)}
+          />
         </div>
 
         <main className="flex flex-1 flex-col overflow-hidden">
@@ -190,13 +217,20 @@ Would you like me to:
                   <div className="mb-4 inline-flex items-center justify-center rounded-full bg-primary/10 p-4">
                     <AnalyzeIcon size={32} className="text-primary" />
                   </div>
-                  <h2 className="mb-2 text-xl font-semibold text-foreground">Upload Documents to Analyze</h2>
+                  <h2 className="mb-2 text-xl font-semibold text-foreground">
+                    Upload Documents to Analyze
+                  </h2>
                   <p className="text-muted-foreground">
-                    Upload up to 2 documents (PDF or DOC) to start an AI-powered Q&A session.
+                    Upload up to 2 documents (PDF or DOC) to start an AI-powered
+                    Q&A session.
                   </p>
                 </div>
 
-                <FileUpload maxFiles={2} onFilesChange={handleFilesChange} className="mb-6" />
+                <FileUpload
+                  maxFiles={2}
+                  onFilesChange={handleFilesChange}
+                  className="mb-6"
+                />
 
                 <div className="flex justify-center">
                   <Button
@@ -226,7 +260,7 @@ Would you like me to:
                 <div className="flex items-center gap-3">
                   <FileIcon size={18} className="text-primary" />
                   <span className="text-sm text-foreground">
-                    Analyzing: {uploadedFiles.map((f) => f.name).join(", ")}
+                    Analysing: {uploadedFiles.map((f) => f.name).join(", ")}
                   </span>
                 </div>
               </div>
@@ -240,7 +274,10 @@ Would you like me to:
                   {isLoading && (
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                        <SparklesIcon size={16} className="animate-pulse text-primary" />
+                        <SparklesIcon
+                          size={16}
+                          className="animate-pulse text-primary"
+                        />
                       </div>
                       <div className="rounded-2xl rounded-tl-none bg-accent px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -270,5 +307,5 @@ Would you like me to:
         </main>
       </div>
     </div>
-  )
+  );
 }

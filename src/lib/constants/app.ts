@@ -1,6 +1,6 @@
 // Application-wide constants
 export const APP_NAME = "LexMind AI" as const;
-export const APP_TAGLINE = "Your Personalized AI Counsel" as const;
+export const APP_TAGLINE = "Your Personalised AI Counsel" as const;
 export const APP_DESCRIPTION =
   "Intelligent legal document analysis, drafting, and comparison powered by advanced AI" as const;
 
@@ -15,6 +15,7 @@ export const ROUTES = {
   DOCUMENT_SUMMARIZER: "/dashboard/document-summarizer",
   FAMILY_LAW: "/dashboard/family-law",
   IMMIGRATION_LAW: "/dashboard/immigration-law",
+  BILLING: "/dashboard/billing",
 } as const;
 
 export const ACCEPTED_FILE_TYPES = {

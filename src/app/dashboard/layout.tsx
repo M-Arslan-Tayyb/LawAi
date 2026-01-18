@@ -18,6 +18,7 @@ export default function DashboardLayout({
   useEffect(() => {
     const isModulePage =
       pathname !== ROUTES.DASHBOARD &&
+      pathname !== ROUTES.BILLING &&
       (pathname.startsWith(ROUTES.DOCUMENT_COMPARISON) ||
         pathname.startsWith(ROUTES.DRAFTER) ||
         pathname.startsWith(ROUTES.DOCUMENT_ANALYZER) ||

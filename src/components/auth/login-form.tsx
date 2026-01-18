@@ -1,39 +1,47 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Input, Checkbox } from "antd"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { ROUTES } from "@/lib/constants"
-import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Input, Checkbox } from "antd";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 export function LoginForm() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     remember: false,
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    toast.success("Welcome back! Redirecting to dashboard...")
-    router.push(ROUTES.DASHBOARD)
-    setIsLoading(false)
-  }
+    // Check if there's a plan parameter
+    const planParam = searchParams.get("plan");
+    if (planParam) {
+      toast.success("Welcome back! Redirecting to billing...");
+      router.push(`${ROUTES.BILLING}?plan=${planParam}`);
+    } else {
+      toast.success("Welcome back! Redirecting to dashboard...");
+      router.push(ROUTES.DASHBOARD);
+    }
+    setIsLoading(false);
+  };
 
   const handleGoogleSignIn = () => {
-    toast.info("Redirecting to Google Sign In...")
-  }
+    toast.info("Redirecting to Google Sign In...");
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -52,7 +60,7 @@ export function LoginForm() {
           required
           className={cn(
             "!bg-background !border-border hover:!border-primary/50 focus:!border-primary",
-            "!text-foreground placeholder:!text-muted-foreground",
+            "!text-foreground placeholder:!text-muted-foreground"
           )}
         />
       </div>
@@ -60,10 +68,16 @@ export function LoginForm() {
       {/* Password */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label htmlFor="password" className="text-sm font-medium text-foreground">
+          <label
+            htmlFor="password"
+            className="text-sm font-medium text-foreground"
+          >
             Password
           </label>
-          <Link href="#" className="text-sm text-primary hover:text-primary/80 transition-colors">
+          <Link
+            href="#"
+            className="text-sm text-primary hover:text-primary/80 transition-colors"
+          >
             Forgot password?
           </Link>
         </div>
@@ -72,11 +86,13 @@ export function LoginForm() {
           placeholder="Enter your password"
           size="large"
           value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
           required
           className={cn(
             "!bg-background !border-border hover:!border-primary/50 focus:!border-primary",
-            "!text-foreground placeholder:!text-muted-foreground",
+            "!text-foreground placeholder:!text-muted-foreground"
           )}
         />
       </div>
@@ -85,7 +101,9 @@ export function LoginForm() {
       <div className="flex items-center justify-between">
         <Checkbox
           checked={formData.remember}
-          onChange={(e) => setFormData({ ...formData, remember: e.target.checked })}
+          onChange={(e) =>
+            setFormData({ ...formData, remember: e.target.checked })
+          }
           className="!text-foreground"
         >
           <span className="text-sm text-muted-foreground">Remember me</span>
@@ -93,7 +111,11 @@ export function LoginForm() {
       </div>
 
       {/* Submit Button */}
-      <Button type="submit" className="w-full h-12 text-base font-semibold glow-primary-hover" disabled={isLoading}>
+      <Button
+        type="submit"
+        className="w-full h-12 text-base font-semibold glow-primary-hover"
+        disabled={isLoading}
+      >
         {isLoading ? (
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -110,11 +132,18 @@ export function LoginForm() {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+          <span className="bg-background px-2 text-muted-foreground">
+            Or continue with
+          </span>
         </div>
       </div>
 
-      <Button variant="outline" type="button" className="w-full h-12 bg-transparent" onClick={handleGoogleSignIn}>
+      <Button
+        variant="outline"
+        type="button"
+        className="w-full h-12 bg-transparent"
+        onClick={handleGoogleSignIn}
+      >
         <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
           <path
             fill="currentColor"
@@ -139,10 +168,13 @@ export function LoginForm() {
       {/* Sign Up Link */}
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{" "}
-        <Link href={ROUTES.SIGNUP} className="font-medium text-primary hover:text-primary/80 transition-colors">
+        <Link
+          href={ROUTES.SIGNUP}
+          className="font-medium text-primary hover:text-primary/80 transition-colors"
+        >
           Sign up for free
         </Link>
       </p>
     </form>
-  )
+  );
 }

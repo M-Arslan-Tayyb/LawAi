@@ -77,7 +77,7 @@ const recentActivity = [
 
 const stats = [
   {
-    label: "Documents Analyzed",
+    label: "Documents Analysed",
     value: "247",
     change: "+12%",
     icon: FileIcon,
@@ -115,8 +115,10 @@ export default function DashboardPage() {
     <main className="flex-1 overflow-y-auto p-4 lg:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back, John. Here's your legal AI workspace.
+        <p className="text-base sm:text-lg font-medium text-foreground">
+          Welcome back, John.{" "}
+          <span className="text-primary font-semibold">Here's</span> your legal
+          AI workspace.
         </p>
       </div>
 

@@ -76,7 +76,7 @@ const currentSubscription = {
   nextBillingDate: null,
   cancelAtPeriodEnd: false,
 };
-
+console.log(currentSubscription);
 export function BillingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();

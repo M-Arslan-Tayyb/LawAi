@@ -5,20 +5,10 @@ import type React from "react";
 import { cn, formatDate, truncateText } from "@/lib/utils";
 import { PlusIcon, HistoryIcon, SparklesIcon, TrashIcon } from "@/lib/icons";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
-import type { Session } from "@/lib/types";
+import type { Session, SessionSidebarProps } from "@/lib/types";
 import { toast } from "sonner";
 
-interface SessionSidebarProps {
-  sessions: Session[];
-  activeSessionId?: string;
-  onSessionSelect?: (session: Session) => void;
-  onNewSession?: () => void;
-  onDeleteSession?: (sessionId: string) => void;
-  title?: string;
-  className?: string;
-}
-
-export function SessionSidebar({
+export function SessionSidebar<T extends Session>({
   sessions,
   activeSessionId,
   onSessionSelect,
@@ -26,7 +16,7 @@ export function SessionSidebar({
   onDeleteSession,
   title = "History",
   className,
-}: SessionSidebarProps) {
+}: SessionSidebarProps<T>) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -56,7 +46,7 @@ export function SessionSidebar({
       <aside
         className={cn(
           "flex w-64 flex-col border-r border-border bg-sidebar shrink-0",
-          className
+          className,
         )}
       >
         {/* Header with New Session Button */}
@@ -100,7 +90,7 @@ export function SessionSidebar({
                       "hover:bg-accent/50",
                       activeSessionId === session.id
                         ? "bg-primary/10 border border-primary/20"
-                        : "border border-transparent"
+                        : "border border-transparent",
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -110,7 +100,7 @@ export function SessionSidebar({
                             "text-sm font-medium truncate",
                             activeSessionId === session.id
                               ? "text-primary"
-                              : "text-foreground"
+                              : "text-foreground",
                           )}
                         >
                           {truncateText(session.title, 22)}
@@ -123,6 +113,10 @@ export function SessionSidebar({
                             "Document Q&A analysis"}
                           {session.type === "summarizer" &&
                             "Document summarization"}
+                          {session.type === "family-law" &&
+                            "Family law consultation"}
+                          {session.type === "immigration-law" &&
+                            "Immigration law consultation"}
                         </p>
                         <p className="mt-1.5 text-xs text-muted-foreground/70">
                           {formatDate(session.createdAt)}

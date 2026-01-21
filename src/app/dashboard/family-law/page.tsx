@@ -121,7 +121,7 @@ export default function FamilyLawPage() {
   };
 
   const handleDeleteSession = (sessionId: string) => {
-s    setSessions(sessions.filter((s) => s.id !== sessionId));
+    setSessions(sessions.filter((s) => s.id !== sessionId));
     if (activeSession?.id === sessionId) {
       setActiveSession(null);
       setMessages([]);

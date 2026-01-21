@@ -95,7 +95,6 @@ export default function FamilyLawPage() {
     setActiveSession(session);
     setCurrentSessionId(session.id);
 
-    // Fetch messages for this session
     if (session.chat_session_id) {
       try {
         const { data } = await getMessages({
@@ -122,8 +121,7 @@ export default function FamilyLawPage() {
   };
 
   const handleDeleteSession = (sessionId: string) => {
-    // TODO: Implement delete API call if available
-    setSessions(sessions.filter((s) => s.id !== sessionId));
+s    setSessions(sessions.filter((s) => s.id !== sessionId));
     if (activeSession?.id === sessionId) {
       setActiveSession(null);
       setMessages([]);

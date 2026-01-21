@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleCard } from "@/components/ui/module-card";
+import { ModuleCard } from "@/components/common/module-card";
 import {
   CompareIcon,
   DrafterIcon,

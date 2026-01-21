@@ -1,6 +1,14 @@
-"use client"
+"use client";
 
-import { ThreeScene, HeroSection, FeaturesSection, StatsSection, PricingSection, CTASection, Footer } from "@/components/landing"
+import {
+  ThreeScene,
+  HeroSection,
+  FeaturesSection,
+  StatsSection,
+  PricingSection,
+  CTASection,
+  Footer,
+} from "@/components/pages/landing";
 
 export default function LandingPage() {
   return (
@@ -20,5 +28,5 @@ export default function LandingPage() {
         <Footer />
       </div>
     </main>
-  )
+  );
 }

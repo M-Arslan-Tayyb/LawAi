@@ -4,6 +4,8 @@ import { DM_Sans, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/providers";
 import StyledComponentsRegistry from "@/lib/antd-registry";
+import SessionProvider from "@/components/providers/SessionProvider";
+import ReduxProvider from "@/components/providers/ReduxProvider";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -70,26 +72,30 @@ export default function RootLayout({
       <body
         className={`${dmSans.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <StyledComponentsRegistry>
-            {children}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                style: {
-                  background: "var(--card)",
-                  color: "var(--card-foreground)",
-                  border: "1px solid var(--border)",
-                },
-              }}
-            />
-          </StyledComponentsRegistry>
-        </ThemeProvider>
+        <SessionProvider>
+          <ReduxProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <StyledComponentsRegistry>
+                {children}
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    style: {
+                      background: "var(--card)",
+                      color: "var(--card-foreground)",
+                      border: "1px solid var(--border)",
+                    },
+                  }}
+                />
+              </StyledComponentsRegistry>
+            </ThemeProvider>
+          </ReduxProvider>
+        </SessionProvider>
         <Analytics />
       </body>
     </html>

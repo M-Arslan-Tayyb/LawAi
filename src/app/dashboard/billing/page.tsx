@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { BillingContent } from "@/components/dashboard";
+import { BillingContent } from "@/components/pages/dashboard";
 
 export default function BillingPage() {
   return (

@@ -1,4 +1,9 @@
-import type { ComparisonSession, DrafterSession, AnalyzerSession, SummarizerSession } from "@/lib/types"
+import type {
+  ComparisonSession,
+  DrafterSession,
+  AnalyzerSession,
+  SummarizerSession,
+} from "@/types";
 
 export const mockComparisonSessions: ComparisonSession[] = [
   {
@@ -25,7 +30,7 @@ export const mockComparisonSessions: ComparisonSession[] = [
     type: "comparison",
     documents: [],
   },
-]
+];
 
 export const mockDrafterSessions: DrafterSession[] = [
   {
@@ -52,7 +57,7 @@ export const mockDrafterSessions: DrafterSession[] = [
     type: "drafter",
     prompt: "Draft a partnership agreement",
   },
-]
+];
 
 export const mockAnalyzerSessions: AnalyzerSession[] = [
   {
@@ -73,7 +78,7 @@ export const mockAnalyzerSessions: AnalyzerSession[] = [
     documents: [],
     conversation: [],
   },
-]
+];
 
 export const mockSummarizerSessions: SummarizerSession[] = [
   {
@@ -97,4 +102,4 @@ export const mockSummarizerSessions: SummarizerSession[] = [
     updatedAt: new Date("2024-01-11"),
     type: "summarizer",
   },
-]
+];

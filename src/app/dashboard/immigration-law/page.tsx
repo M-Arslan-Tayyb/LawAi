@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { SessionSidebar } from "@/components/ui/session-sidebar";
-import { AiChatInput } from "@/components/ui/ai-chat-input";
-import { ChatMessage } from "@/components/ui/chat-message";
+import { SessionSidebar } from "@/components/common/session-sidebar";
+import { AiChatInput } from "@/components/common/ai-chat-input";
+import { ChatMessage } from "@/components/common/chat-message";
 import { ImmigrationLawIcon, SparklesIcon } from "@/lib/icons";
 import type {
   ImmigrationLawSession,
   ChatMessage as ChatMessageType,
-} from "@/lib/types";
+} from "@/types";
 import { toast } from "sonner";
 import { generateId } from "@/lib/utils";
 

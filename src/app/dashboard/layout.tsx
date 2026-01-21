@@ -3,8 +3,8 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { MainSidebar } from "@/components/dashboard/main-sidebar";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { MainSidebar } from "@/components/pages/dashboard/main-sidebar";
+import { DashboardHeader } from "@/components/pages/dashboard/dashboard-header";
 import { ROUTES } from "@/lib/constants";
 
 export default function DashboardLayout({

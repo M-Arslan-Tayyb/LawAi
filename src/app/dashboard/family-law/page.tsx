@@ -1,35 +1,80 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { SessionSidebar } from "@/components/ui/session-sidebar";
-import { AiChatInput } from "@/components/ui/ai-chat-input";
-import { ChatMessage } from "@/components/ui/chat-message";
+import { AiChatInput } from "@/components/common/ai-chat-input";
+import { ChatMessage } from "@/components/common/chat-message";
+import { SessionSidebar } from "@/components/common/session-sidebar";
+import { useAiStream } from "@/hooks/useAiStream";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { FamilyLawIcon, SparklesIcon } from "@/lib/icons";
-import type {
-  FamilyLawSession,
-  ChatMessage as ChatMessageType,
-} from "@/lib/types";
+import {
+  generateId,
+  generateSessionId,
+  transformApiMessagesToChatMessages,
+  transformApiSessionToAppSession,
+} from "@/lib/utils";
+import {
+  useGetFamilyLawSessionsQuery,
+  useLazyGetFamilyLawMessagesQuery,
+  useQueryFamilyLawAgentMutation,
+} from "@/redux/features/familyLaw";
+import {
+  FamilyLawMessage,
+  FamilyLawQueryResponse,
+  FamilyLawSessionResponse,
+} from "@/types/FamilyLawTypes";
+import { ChatMessage as ChatMessageType, Session } from "@/types/genericTypes";
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import { generateId } from "@/lib/utils";
-
-// FAQ questions for family law
-const familyLawFAQs = [
-  "What is the process for filing a divorce?",
-  "How is child custody determined?",
-  "What are spousal support guidelines?",
-  "How do I file for child support?",
-  "What is a prenuptial agreement?",
-  "How does the adoption process work?",
-];
+import { familyLawFAQs } from "@/lib/data/GeneralData";
 
 export default function FamilyLawPage() {
-  const [sessions, setSessions] = useState<FamilyLawSession[]>([]);
-  const [activeSession, setActiveSession] = useState<FamilyLawSession | null>(
+  const { data: sessionData } = useAuthSession();
+  const userId = sessionData?.user?.userId as string;
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null,
   );
-  const [messages, setMessages] = useState<ChatMessageType[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Use the AI streaming hook
+  const { streamedContent, isStreaming, streamText, resetStream } = useAiStream(
+    {
+      streamSpeed: 20,
+      chunkSize: 3,
+    },
+  );
+
+  // RTK Query hooks
+  const { data: sessionsData } = useGetFamilyLawSessionsQuery(
+    { user_id: Number(userId) },
+    { refetchOnMountOrArgChange: true },
+  );
+  const [getMessages] = useLazyGetFamilyLawMessagesQuery();
+  const [queryAgent, { isLoading: isAgentLoading }] =
+    useQueryFamilyLawAgentMutation();
+
+  useEffect(() => {
+    if (sessionsData?.succeeded && sessionsData.data) {
+      // Fix type error by explicitly checking if data is an array
+      const dataArray: FamilyLawSessionResponse[] =
+        Array.isArray(sessionsData.data) &&
+        sessionsData.data.length > 0 &&
+        typeof sessionsData.data[0] === "object" &&
+        "chat_session_id" in sessionsData.data[0]
+          ? (sessionsData.data as FamilyLawSessionResponse[])
+          : [];
+
+      const transformedSessions = dataArray.map(
+        transformApiSessionToAppSession,
+      );
+      setSessions(transformedSessions);
+    }
+  }, [sessionsData]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -37,25 +82,54 @@ export default function FamilyLawPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streamedContent]);
 
   const handleNewSession = () => {
     setActiveSession(null);
     setMessages([]);
+    setCurrentSessionId(null);
+    resetStream();
     toast.success("New session started");
   };
 
-  const handleSessionSelect = (session: FamilyLawSession) => {
+  const handleSessionSelect = async (session: Session) => {
     setActiveSession(session);
-    setMessages(session.conversation || []);
-    toast.success(`Loaded session: ${session.title}`);
+    setCurrentSessionId(session.id);
+
+    // Fetch messages for this session
+    if (session.chat_session_id) {
+      try {
+        const { data } = await getMessages({
+          chat_session_id: session.chat_session_id,
+        });
+
+        if (data?.succeeded && data.data) {
+          // Fix type error by explicitly checking if data is an array
+          const dataArray: FamilyLawMessage[] =
+            Array.isArray(data.data) &&
+            data.data.length > 0 &&
+            typeof data.data[0] === "object" &&
+            "message_id" in data.data[0]
+              ? (data.data as FamilyLawMessage[])
+              : [];
+
+          const chatMessages = transformApiMessagesToChatMessages(dataArray);
+          setMessages(chatMessages);
+        }
+      } catch (error) {
+        toast.error("Failed to load session messages");
+        console.error(error);
+      }
+    }
   };
 
   const handleDeleteSession = (sessionId: string) => {
+    // TODO: Implement delete API call if available
     setSessions(sessions.filter((s) => s.id !== sessionId));
     if (activeSession?.id === sessionId) {
       setActiveSession(null);
       setMessages([]);
+      setCurrentSessionId(null);
     }
     toast.success("Session deleted");
   };
@@ -70,86 +144,95 @@ export default function FamilyLawPage() {
     };
     setMessages((prev) => [...prev, userMessage]);
 
-    // Create or update session
-    let currentSession = activeSession;
-    if (!currentSession) {
-      currentSession = {
-        id: generateId(),
-        title: content.slice(0, 40) + (content.length > 40 ? "..." : ""),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        type: "family-law",
-        conversation: [userMessage],
-      };
-      setSessions([currentSession, ...sessions]);
-      setActiveSession(currentSession);
+    // Generate or use existing session ID
+    const sessionId = currentSessionId || generateSessionId();
+    if (!currentSessionId) {
+      setCurrentSessionId(sessionId);
     }
 
-    setIsLoading(true);
+    try {
+      // Call API
+      const response = await queryAgent({
+        user_id: Number(userId),
+        session_id: sessionId,
+        user_message: content,
+      }).unwrap();
 
-    // Simulate streaming response
-    const responseText = `Based on your question about "${content}", I can provide the following information about family law:
+      if (response.succeeded && response.data) {
+        const responseData: FamilyLawQueryResponse = Array.isArray(
+          response.data,
+        )
+          ? response.data[0]
+          : response.data;
 
-Family law encompasses various legal matters related to family relationships, including:
+        // Create AI message
+        const aiMessageId = generateId();
+        const aiMessage: ChatMessageType = {
+          id: aiMessageId,
+          role: "assistant",
+          content: "",
+          timestamp: new Date(),
+        };
 
-1. **Divorce and Separation**: The process of legally dissolving a marriage, including property division, spousal support, and custody arrangements.
+        setMessages((prev) => [...prev, aiMessage]);
+        setStreamingMessageId(aiMessageId);
 
-2. **Child Custody and Support**: Legal frameworks for determining where children will live and financial support obligations.
+        // Stream the response using the hook
+        await streamText(responseData.ai_response, aiMessageId);
 
-3. **Adoption**: Legal procedures for adopting children, including domestic and international adoption processes.
+        // Update the message with the complete response
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === aiMessageId
+              ? { ...msg, content: responseData.ai_response }
+              : msg,
+          ),
+        );
 
-4. **Domestic Violence**: Protection orders and legal remedies for victims of domestic abuse.
+        setStreamingMessageId(null);
 
-5. **Prenuptial and Postnuptial Agreements**: Legal contracts that outline financial and property arrangements before or during marriage.
+        // Update or create session locally (without refetching)
+        if (!activeSession) {
+          const newSession: Session = {
+            id: sessionId,
+            title: content.slice(0, 40) + (content.length > 40 ? "..." : ""),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            type: "family-law",
+            conversation: [
+              ...messages,
+              userMessage,
+              { ...aiMessage, content: responseData.ai_response },
+            ],
+          };
+          setSessions([newSession, ...sessions]);
+          setActiveSession(newSession);
+        } else {
+          // Update existing session
+          const updatedSession: Session = {
+            ...activeSession,
+            updatedAt: new Date(),
+            conversation: [
+              ...messages,
+              userMessage,
+              { ...aiMessage, content: responseData.ai_response },
+            ],
+          };
+          setSessions((prev) =>
+            prev.map((s) => (s.id === activeSession.id ? updatedSession : s)),
+          );
+          setActiveSession(updatedSession);
+        }
+      } else {
+        toast.error(response.message || "Failed to get response");
+      }
+    } catch (error: any) {
+      console.error("Error sending message:", error);
+      toast.error(error?.data?.message || "Failed to send message");
 
-Would you like me to elaborate on any specific area of family law?`;
-
-    // Stream the response character by character
-    let streamedContent = "";
-    const aiMessageId = generateId();
-    const aiMessage: ChatMessageType = {
-      id: aiMessageId,
-      role: "assistant",
-      content: "",
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, aiMessage]);
-
-    for (let i = 0; i < responseText.length; i += 3) {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      streamedContent = responseText.substring(0, i + 3);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === aiMessageId ? { ...msg, content: streamedContent } : msg,
-        ),
-      );
+      // Remove the user message if API call failed
+      setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
     }
-
-    // Update session with complete conversation
-    setMessages((prev) => {
-      const finalMessage = { ...aiMessage, content: responseText };
-      const updatedConversation = [
-        ...prev.filter((msg) => msg.id !== aiMessageId),
-        finalMessage,
-      ];
-
-      const updatedSession: FamilyLawSession = {
-        ...currentSession,
-        updatedAt: new Date(),
-        conversation: updatedConversation,
-      };
-
-      setSessions((prevSessions) =>
-        prevSessions.map((s) =>
-          s.id === currentSession.id ? updatedSession : s,
-        ),
-      );
-      setActiveSession(updatedSession);
-
-      return updatedConversation;
-    });
-
-    setIsLoading(false);
   };
 
   const handleFAQClick = (faq: string) => {
@@ -157,11 +240,12 @@ Would you like me to elaborate on any specific area of family law?`;
   };
 
   const hasMessages = messages.length > 0;
+  const isLoading = isAgentLoading || isStreaming;
 
   return (
     <div className="flex h-full">
       {/* Session Sidebar */}
-      <SessionSidebar<FamilyLawSession>
+      <SessionSidebar<Session>
         sessions={sessions}
         activeSessionId={activeSession?.id}
         onSessionSelect={handleSessionSelect}
@@ -188,7 +272,7 @@ Would you like me to elaborate on any specific area of family law?`;
         <main className="flex flex-1 flex-col overflow-hidden">
           {!hasMessages ? (
             // Empty state - input centered
-            <div className="flex flex-1 items-center justify-center p-4 lg:p-6">
+            <div className="flex flex-1 items-center justify-center p-2 lg:p-4">
               <div className="w-full max-w-3xl">
                 <div className="mb-8 text-center">
                   <div className="mb-4 inline-flex items-center justify-center rounded-full bg-primary/10 p-4">
@@ -217,7 +301,8 @@ Would you like me to elaborate on any specific area of family law?`;
                     <button
                       key={index}
                       onClick={() => handleFAQClick(faq)}
-                      className="rounded-full border border-border bg-accent/50 px-4 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground hover:bg-primary/5"
+                      disabled={isLoading}
+                      className="rounded-full border border-border bg-accent/50 px-4 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {faq}
                     </button>
@@ -229,12 +314,22 @@ Would you like me to elaborate on any specific area of family law?`;
             // Chat interface - input at bottom
             <div className="flex flex-1 flex-col overflow-hidden">
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-                <div className="mx-auto max-w-3xl space-y-6">
+              <div className="flex-1 overflow-y-auto p-3 lg:p-4">
+                <div className="mx-auto max-w-3xl space-y-3">
                   {messages.map((message) => (
-                    <ChatMessage key={message.id} message={message} />
+                    <ChatMessage key={message.id} message={message}>
+                      {message.role === "assistant" && (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown>
+                            {streamingMessageId === message.id
+                              ? streamedContent
+                              : message.content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                    </ChatMessage>
                   ))}
-                  {isLoading && (
+                  {isAgentLoading && !streamingMessageId && (
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
                         <SparklesIcon
@@ -256,7 +351,7 @@ Would you like me to elaborate on any specific area of family law?`;
               </div>
 
               {/* Chat Input at Bottom */}
-              <div className="border-t border-border bg-background p-4">
+              <div className="border-t border-border bg-background p-3">
                 <div className="mx-auto max-w-3xl">
                   <AiChatInput
                     onSend={handleSendMessage}

@@ -1,23 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { SessionSidebar } from "@/components/ui/session-sidebar";
-import { FileUpload } from "@/components/ui/file-upload";
-import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { SessionSidebar } from "@/components/common/session-sidebar";
+import { FileUpload } from "@/components/common/file-upload";
+import { FullscreenToggle } from "@/components/common/fullscreen-toggle";
 import { Button } from "@/components/ui/button";
 import { mockComparisonSessions } from "@/lib/data";
 import { CompareIcon, SparklesIcon } from "@/lib/icons";
-import type { ComparisonSession } from "@/lib/types";
+import type { ComparisonSession } from "@/types";
 import { toast } from "sonner";
 import { generateId } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export default function DocumentComparisonPage() {
   const [sessions, setSessions] = useState<ComparisonSession[]>(
-    mockComparisonSessions
+    mockComparisonSessions,
   );
   const [activeSession, setActiveSession] = useState<ComparisonSession | null>(
-    null
+    null,
   );
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isComparing, setIsComparing] = useState(false);
@@ -222,8 +222,8 @@ export default function DocumentComparisonPage() {
                       {comparisonResult.similarity >= 80
                         ? "High similarity detected"
                         : comparisonResult.similarity >= 50
-                        ? "Moderate similarity detected"
-                        : "Significant differences found"}
+                          ? "Moderate similarity detected"
+                          : "Significant differences found"}
                     </p>
                   </div>
                 </div>
@@ -245,7 +245,7 @@ export default function DocumentComparisonPage() {
                           <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />
                           <span className="text-muted-foreground">{diff}</span>
                         </li>
-                      )
+                      ),
                     )}
                   </ul>
                 </div>
@@ -265,7 +265,7 @@ export default function DocumentComparisonPage() {
                             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-green-500" />
                             <span className="text-muted-foreground">{add}</span>
                           </li>
-                        )
+                        ),
                       )}
                     </ul>
                   </div>
@@ -284,7 +284,7 @@ export default function DocumentComparisonPage() {
                             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-red-500" />
                             <span className="text-muted-foreground">{rem}</span>
                           </li>
-                        )
+                        ),
                       )}
                     </ul>
                   </div>

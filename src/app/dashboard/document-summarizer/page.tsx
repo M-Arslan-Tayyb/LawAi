@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { SessionSidebar } from "@/components/ui/session-sidebar";
-import { FileUpload } from "@/components/ui/file-upload";
-import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { SessionSidebar } from "@/components/common/session-sidebar";
+import { FileUpload } from "@/components/common/file-upload";
+import { FullscreenToggle } from "@/components/common/fullscreen-toggle";
 import { Button } from "@/components/ui/button";
 import { mockSummarizerSessions } from "@/lib/data";
 import {
@@ -13,16 +13,16 @@ import {
   DownloadIcon,
   CheckIcon,
 } from "@/lib/icons";
-import type { SummarizerSession } from "@/lib/types";
+import type { SummarizerSession } from "@/types";
 import { toast } from "sonner";
 import { generateId, cn } from "@/lib/utils";
 
 export default function DocumentSummarizerPage() {
   const [sessions, setSessions] = useState<SummarizerSession[]>(
-    mockSummarizerSessions
+    mockSummarizerSessions,
   );
   const [activeSession, setActiveSession] = useState<SummarizerSession | null>(
-    null
+    null,
   );
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -159,7 +159,7 @@ ${summary.keyPoints
     (section: any) =>
       `### ${section.category}\n${section.points
         .map((p: string) => `- ${p}`)
-        .join("\n")}`
+        .join("\n")}`,
   )
   .join("\n\n")}
 
@@ -195,7 +195,7 @@ ${summary.keyPoints
     (section: any) =>
       `### ${section.category}\n${section.points
         .map((p: string) => `- ${p}`)
-        .join("\n")}`
+        .join("\n")}`,
   )
   .join("\n\n")}
 
@@ -407,7 +407,7 @@ ${summary.recommendations.map((r: string) => `- ${r}`).join("\n")}
                               {point}
                             </span>
                           </li>
-                        )
+                        ),
                       )}
                     </ul>
                   </div>
@@ -447,7 +447,7 @@ ${summary.recommendations.map((r: string) => `- ${r}`).join("\n")}
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
                           <span className="text-muted-foreground">{rec}</span>
                         </li>
-                      )
+                      ),
                     )}
                   </ul>
                 </div>

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { SessionSidebar } from "@/components/ui/session-sidebar";
-import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { SessionSidebar } from "@/components/common/session-sidebar";
+import { FullscreenToggle } from "@/components/common/fullscreen-toggle";
 import { Button } from "@/components/ui/button";
 import { mockDrafterSessions } from "@/lib/data";
 import {
@@ -11,7 +11,7 @@ import {
   DownloadIcon,
   CheckIcon,
 } from "@/lib/icons";
-import type { DrafterSession } from "@/lib/types";
+import type { DrafterSession } from "@/types";
 import { toast } from "sonner";
 import { cn, generateId } from "@/lib/utils";
 
@@ -28,7 +28,7 @@ export default function DrafterPage() {
   const [sessions, setSessions] =
     useState<DrafterSession[]>(mockDrafterSessions);
   const [activeSession, setActiveSession] = useState<DrafterSession | null>(
-    null
+    null,
   );
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -177,7 +177,7 @@ Date: [DATE]`;
 
   const handleSuggestionClick = (suggestion: string) => {
     setPrompt(
-      `Draft a ${suggestion} for a technology company. Include standard clauses for intellectual property protection, confidentiality, and dispute resolution.`
+      `Draft a ${suggestion} for a technology company. Include standard clauses for intellectual property protection, confidentiality, and dispute resolution.`,
     );
   };
 
@@ -255,7 +255,7 @@ Date: [DATE]`;
                       "w-full rounded-xl border border-border bg-background px-4 py-3",
                       "text-foreground placeholder:text-muted-foreground resize-none",
                       "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                      "transition-all"
+                      "transition-all",
                     )}
                   />
                   <div className="absolute bottom-3 right-3 text-xs text-muted-foreground">
@@ -291,7 +291,7 @@ Date: [DATE]`;
                     size={18}
                     className={cn(
                       "text-primary",
-                      isGenerating && "animate-pulse"
+                      isGenerating && "animate-pulse",
                     )}
                   />
                   <span className="font-medium text-foreground">

@@ -1,18 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { SessionSidebar } from "@/components/ui/session-sidebar";
-import { FileUpload } from "@/components/ui/file-upload";
-import { AiChatInput } from "@/components/ui/ai-chat-input";
-import { ChatMessage } from "@/components/ui/chat-message";
-import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
+import { SessionSidebar } from "@/components/common/session-sidebar";
+import { FileUpload } from "@/components/common/file-upload";
+import { AiChatInput } from "@/components/common/ai-chat-input";
+import { ChatMessage } from "@/components/common/chat-message";
+import { FullscreenToggle } from "@/components/common/fullscreen-toggle";
 import { Button } from "@/components/ui/button";
 import { mockAnalyzerSessions } from "@/lib/data";
 import { AnalyzeIcon, SparklesIcon, FileIcon } from "@/lib/icons";
-import type {
-  AnalyzerSession,
-  ChatMessage as ChatMessageType,
-} from "@/lib/types";
+import type { AnalyzerSession, ChatMessage as ChatMessageType } from "@/types";
 import { toast } from "sonner";
 import { generateId, cn } from "@/lib/utils";
 
@@ -20,7 +17,7 @@ export default function DocumentAnalyzerPage() {
   const [sessions, setSessions] =
     useState<AnalyzerSession[]>(mockAnalyzerSessions);
   const [activeSession, setActiveSession] = useState<AnalyzerSession | null>(
-    null
+    null,
   );
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploaded, setIsUploaded] = useState(false);
@@ -97,7 +94,7 @@ export default function DocumentAnalyzerPage() {
       }: ${uploadedFiles
         .map((f) => f.name)
         .join(
-          ", "
+          ", ",
         )}. This appears to be a legal contract containing standard clauses for confidentiality, terms of engagement, and liability provisions. What would you like to know about ${
         uploadedFiles.length > 1 ? "these documents" : "this document"
       }?`,

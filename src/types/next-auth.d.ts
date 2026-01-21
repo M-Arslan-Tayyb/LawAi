@@ -1,0 +1,48 @@
+import NextAuth from "next-auth";
+
+declare module "next-auth" {
+  interface Session {
+    accessToken: string;
+    tokenType: string;
+    user: {
+      userId: string;
+      email: string;
+      name: string;
+      firstName: string;
+      lastName: string;
+      userName: string;
+      userRole: string;
+      userProfileStatus: string;
+      profilePicture: string;
+    };
+  }
+
+  interface User {
+    id: string;
+    email: string;
+    name: string;
+    accessToken: string;
+    tokenType: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    userName: string;
+    userRole: string;
+    userProfileStatus: string;
+    profilePicture: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken: string;
+    tokenType: string;
+    userId: string;
+    firstName: string;
+    lastName: string;
+    userName: string;
+    userRole: string;
+    userProfileStatus: string;
+    profilePicture: string;
+  }
+}

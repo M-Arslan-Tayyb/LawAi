@@ -60,7 +60,6 @@ export default function FamilyLawPage() {
 
   useEffect(() => {
     if (sessionsData?.succeeded && sessionsData.data) {
-      // Fix type error by explicitly checking if data is an array
       const dataArray: FamilyLawSessionResponse[] =
         Array.isArray(sessionsData.data) &&
         sessionsData.data.length > 0 &&
@@ -104,7 +103,6 @@ export default function FamilyLawPage() {
         });
 
         if (data?.succeeded && data.data) {
-          // Fix type error by explicitly checking if data is an array
           const dataArray: FamilyLawMessage[] =
             Array.isArray(data.data) &&
             data.data.length > 0 &&

@@ -1,19 +1,27 @@
 "use client";
+
 import { useState, useRef, useEffect } from "react";
 import { SessionSidebar } from "@/components/common/session-sidebar";
 import { FullscreenToggle } from "@/components/common/fullscreen-toggle";
-import { Button } from "@/components/ui/button";
-import { mockDrafterSessions } from "@/lib/data";
+import { HtmlRenderer } from "@/components/common/html-renderer";
 import {
   DrafterIcon,
   SparklesIcon,
   CopyIcon,
   DownloadIcon,
   CheckIcon,
+  SendIcon,
 } from "@/lib/icons";
-import type { DrafterSession } from "@/types";
+import { FileTextIcon } from "lucide-react";
+import type { Session } from "@/types/genericTypes";
 import { toast } from "sonner";
 import { cn, generateId } from "@/lib/utils";
+import {
+  useGenerateDraftMutation,
+  useGetDraftsQuery,
+} from "@/redux/features/drafter";
+import { DrafterDraft, DrafterGenerateResponse } from "@/types/DrafterTypes";
+import { Button } from "@/components/ui/button";
 
 const templateSuggestions = [
   "Non-Disclosure Agreement (NDA)",
@@ -25,38 +33,74 @@ const templateSuggestions = [
 ];
 
 export default function DrafterPage() {
-  const [sessions, setSessions] =
-    useState<DrafterSession[]>(mockDrafterSessions);
-  const [activeSession, setActiveSession] = useState<DrafterSession | null>(
-    null,
-  );
+  // Get user_id from your auth context/store
+  const userId = 3; // TODO: Replace with actual user ID from auth
+
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedDraft, setGeneratedDraft] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const textAreaRef = useRef<HTMLDivElement>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // RTK Query hooks
+  const { data: draftsData, refetch: refetchDrafts } = useGetDraftsQuery(
+    { user_id: userId },
+    { refetchOnMountOrArgChange: true },
+  );
+  const [generateDraft, { isLoading: isDraftLoading }] =
+    useGenerateDraftMutation();
+
+  // Transform API data to sessions
+  useEffect(() => {
+    if (draftsData?.succeeded && draftsData.data) {
+      // Handle both array and object responses
+      const dataArray = Array.isArray(draftsData.data)
+        ? (draftsData.data as DrafterDraft[])
+        : [draftsData.data as DrafterDraft];
+
+      const transformedSessions: Session[] = dataArray.map((draft) => ({
+        id: draft.contract_id.toString(),
+        title: draft.requirements,
+        createdAt: new Date(draft.created_at),
+        updatedAt: new Date(draft.created_at),
+        type: "drafter",
+        draft: draft.contract_draft,
+        requirements: draft.requirements,
+      }));
+      setSessions(transformedSessions);
+    }
+  }, [draftsData]);
 
   const handleNewSession = () => {
     setActiveSession(null);
     setPrompt("");
     setGeneratedDraft("");
+    setIsReadOnly(false);
     toast.success("New drafting session started");
   };
 
-  const handleSessionSelect = (session: any) => {
-    setActiveSession(session as DrafterSession);
-    setPrompt("");
-    setGeneratedDraft("");
-    toast.success(`Loaded session: ${session.title}`);
+  const handleSessionSelect = (session: Session) => {
+    setActiveSession(session);
+    setPrompt(session.requirements || "");
+    setGeneratedDraft(session.draft || "");
+    setIsReadOnly(true); // Set read-only when loading a session
+    toast.success(`Loaded draft: ${session.title}`);
   };
 
   const handleDeleteSession = (sessionId: string) => {
+    // TODO: Implement delete API call if available
     setSessions(sessions.filter((s) => s.id !== sessionId));
     if (activeSession?.id === sessionId) {
       setActiveSession(null);
       setGeneratedDraft("");
+      setPrompt("");
+      setIsReadOnly(false);
     }
+    toast.success("Draft deleted");
   };
 
   const handleGenerate = async () => {
@@ -69,90 +113,47 @@ export default function DrafterPage() {
     setGeneratedDraft("");
     toast.info("AI is generating your legal document...");
 
-    const mockDraft = `# Non-Disclosure Agreement
+    try {
+      const response = await generateDraft({
+        user_id: userId,
+        requirements: prompt,
+      }).unwrap();
 
-**This Non-Disclosure Agreement** (the "Agreement") is entered into as of [DATE] by and between:
+      if (response.succeeded && response.data) {
+        // Handle both array and object responses
+        const responseData = Array.isArray(response.data)
+          ? (response.data[0] as DrafterGenerateResponse)
+          : (response.data as DrafterGenerateResponse);
 
-**Party A:** [COMPANY NAME], a [STATE] corporation, with its principal place of business at [ADDRESS] ("Disclosing Party")
+        setGeneratedDraft(responseData.draft);
+        setIsReadOnly(true); // Enable read-only mode immediately after successful generation
 
-**Party B:** [RECIPIENT NAME], located at [ADDRESS] ("Receiving Party")
+        // Add to sessions
+        const newSession: Session = {
+          id: generateId(),
+          title: prompt.slice(0, 40) + (prompt.length > 40 ? "..." : ""),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          type: "drafter",
+          draft: responseData.draft,
+          requirements: prompt,
+        };
+        setSessions([newSession, ...sessions]);
+        setActiveSession(newSession);
 
-## RECITALS
+        // Refetch drafts to get the latest data
+        refetchDrafts();
 
-WHEREAS, the Disclosing Party possesses certain confidential and proprietary information relating to [DESCRIBE BUSINESS/PROJECT]; and
-
-WHEREAS, the Receiving Party desires to receive certain Confidential Information for the purpose of [PURPOSE];
-
-NOW, THEREFORE, in consideration of the mutual covenants and agreements herein contained, the parties agree as follows:
-
-## 1. DEFINITION OF CONFIDENTIAL INFORMATION
-
-"Confidential Information" means any and all information or data, whether in oral, written, graphic, electronic or any other form, disclosed by the Disclosing Party to the Receiving Party, including but not limited to:
-
-- Trade secrets, inventions, and proprietary information
-- Business plans, strategies, and financial information
-- Customer lists, marketing plans, and pricing information
-- Technical data, designs, and specifications
-- Software, algorithms, and source code
-
-## 2. OBLIGATIONS OF RECEIVING PARTY
-
-The Receiving Party agrees to:
-
-a) Hold and maintain the Confidential Information in strict confidence;
-b) Not disclose any Confidential Information to any third parties;
-c) Not use any Confidential Information for any purpose except as authorized;
-d) Protect the Confidential Information with the same degree of care as its own confidential information.
-
-## 3. TERM
-
-This Agreement shall remain in effect for a period of [NUMBER] years from the Effective Date, unless earlier terminated by either party with thirty (30) days written notice.
-
-## 4. RETURN OF INFORMATION
-
-Upon termination of this Agreement, the Receiving Party shall promptly return or destroy all Confidential Information and any copies thereof.
-
-## 5. GOVERNING LAW
-
-This Agreement shall be governed by and construed in accordance with the laws of the State of [STATE].
-
----
-
-**IN WITNESS WHEREOF**, the parties have executed this Agreement as of the date first written above.
-
-**DISCLOSING PARTY:**
-
-_________________________
-Name: [NAME]
-Title: [TITLE]
-Date: [DATE]
-
-**RECEIVING PARTY:**
-
-_________________________
-Name: [NAME]
-Title: [TITLE]
-Date: [DATE]`;
-
-    for (let i = 0; i < mockDraft.length; i += 5) {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      setGeneratedDraft(mockDraft.substring(0, i + 5));
+        toast.success("Draft generated successfully!");
+      } else {
+        toast.error(response.message || "Failed to generate draft");
+      }
+    } catch (error: any) {
+      console.error("Error generating draft:", error);
+      toast.error(error?.data?.message || "Failed to generate draft");
+    } finally {
+      setIsGenerating(false);
     }
-
-    // Add to sessions
-    const newSession: DrafterSession = {
-      id: generateId(),
-      title: prompt.slice(0, 40) + (prompt.length > 40 ? "..." : ""),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      prompt, // Ensure 'prompt' property is included as required by DrafterSession
-      type: "drafter",
-    };
-    setSessions([newSession, ...sessions]);
-    setActiveSession(newSession);
-
-    setIsGenerating(false);
-    toast.success("Draft generated successfully!");
   };
 
   const handleCopy = async () => {
@@ -163,11 +164,11 @@ Date: [DATE]`;
   };
 
   const handleDownload = () => {
-    const blob = new Blob([generatedDraft], { type: "text/markdown" });
+    const blob = new Blob([generatedDraft], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "legal-draft.md";
+    a.download = "legal-draft.html";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -181,14 +182,29 @@ Date: [DATE]`;
     );
   };
 
+  // Handle Ctrl+Enter to generate
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault(); // Prevent adding a newline
+      handleGenerate();
+    }
+  };
+
   useEffect(() => {
-    if (textAreaRef.current && generatedDraft) {
-      textAreaRef.current.scrollTop = textAreaRef.current.scrollHeight;
+    if (contentRef.current && generatedDraft) {
+      contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
   }, [generatedDraft]);
 
+  const isLoading = isDraftLoading || isGenerating;
+
   return (
-    <div className={cn("flex h-full", isFullscreen && "fullscreen-mode")}>
+    <div
+      className={cn(
+        "flex h-full bg-background",
+        isFullscreen && "fullscreen-mode",
+      )}
+    >
       {/* Session Sidebar */}
       {!isFullscreen && (
         <SessionSidebar
@@ -204,14 +220,19 @@ Date: [DATE]`;
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Module Header */}
-        <div className="flex items-center justify-between border-b border-border bg-background px-4 py-3 lg:px-6">
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">
-              AI Drafter
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Generate professional legal documents from prompts
-            </p>
+        <div className="flex items-center justify-between border-b border-border bg-background px-4 py-3 lg:px-6 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <DrafterIcon size={20} className="text-primary" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">
+                AI Drafter
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Generate professional legal documents from prompts
+              </p>
+            </div>
           </div>
           <FullscreenToggle
             isFullscreen={isFullscreen}
@@ -219,137 +240,202 @@ Date: [DATE]`;
           />
         </div>
 
-        <main className="flex flex-1 flex-col overflow-hidden p-4 lg:p-6">
-          <div className="mx-auto flex h-full w-full max-w-5xl flex-col">
-            {/* Prompt Section */}
-            <div className="mb-6">
-              <div className="mb-3 flex items-center gap-2">
-                <DrafterIcon size={20} className="text-primary" />
-                <span className="font-medium text-foreground">
-                  Describe the document you need
-                </span>
-              </div>
+        <main className="flex flex-1 flex-col overflow-hidden relative">
+          {!generatedDraft && !isLoading ? (
+            // Empty state - input centered
+            <div className="flex flex-1 items-center justify-center p-4 lg:p-6 overflow-y-auto">
+              <div className="w-full max-w-3xl space-y-6">
+                {/* Template Suggestions */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {templateSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="rounded-full border border-border bg-accent/50 px-4 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground hover:bg-primary/5"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
 
-              {/* Template Suggestions */}
-              <div className="mb-3 flex flex-wrap gap-2">
-                {templateSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="rounded-full border border-border bg-accent/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground hover:bg-primary/5"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-
-              {/* Improved textarea styling */}
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
+                {/* Custom Input Area with Send Button */}
+                <div className="relative group">
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="E.g., Draft a non-disclosure agreement for a software development project between a tech startup and a freelance developer. Include clauses for intellectual property, confidentiality period of 2 years, and mutual obligations..."
-                    rows={4}
-                    className={cn(
-                      "w-full rounded-xl border border-border bg-background px-4 py-3",
-                      "text-foreground placeholder:text-muted-foreground resize-none",
-                      "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                      "transition-all",
-                    )}
+                    onKeyDown={handleKeyDown}
+                    placeholder="E.g., Draft a non-disclosure agreement for a software development project..."
+                    rows={6}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-4 pr-14 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                   />
-                  <div className="absolute bottom-3 right-3 text-xs text-muted-foreground">
-                    {prompt.length} characters
+                  <div className="absolute bottom-3 right-3">
+                    <button
+                      onClick={handleGenerate}
+                      disabled={!prompt.trim() || isLoading}
+                      className={cn(
+                        "rounded-lg p-2 transition-all flex items-center justify-center",
+                        !prompt.trim() || isLoading
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : "bg-primary/30 text-primary-foreground hover:bg-primary/40 shadow-md hover:shadow-lg",
+                      )}
+                    >
+                      {isLoading ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : (
+                        <SendIcon size={16} />
+                      )}
+                    </button>
+                  </div>
+                  <div className="absolute bottom-3 left-4 text-xs text-muted-foreground pointer-events-none">
+                    Press <span className="font-medium">Ctrl + Enter</span> to
+                    generate
                   </div>
                 </div>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!prompt.trim() || isGenerating}
-                  className="h-auto min-w-[100px] flex-col gap-2 rounded-xl px-6 py-4 glow-primary-hover"
-                >
-                  {isGenerating ? (
-                    <>
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      <span className="text-xs">Generating</span>
-                    </>
-                  ) : (
-                    <>
-                      <SparklesIcon size={20} />
-                      <span className="text-xs">Generate</span>
-                    </>
-                  )}
-                </Button>
               </div>
             </div>
-
-            {/* Generated Draft Section */}
-            <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <SparklesIcon
-                    size={18}
-                    className={cn(
-                      "text-primary",
-                      isGenerating && "animate-pulse",
-                    )}
-                  />
-                  <span className="font-medium text-foreground">
-                    Generated Draft
-                  </span>
-                  {isGenerating && (
-                    <span className="text-xs text-muted-foreground">
-                      (generating...)
+          ) : (
+            // Full view mode - input at bottom
+            <>
+              {/* Generated Draft Section (Full View) */}
+              <div className="flex flex-1 flex-col overflow-hidden">
+                {/* Draft Header */}
+                <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <FileTextIcon size={18} className="text-primary" />
+                    <span className="font-medium text-foreground">
+                      Generated Draft
                     </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Read-only Badge positioned top right */}
+                    {isReadOnly && (
+                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-400">
+                        Read-only
+                      </span>
+                    )}
+                    {generatedDraft && (
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={handleCopy}>
+                          {isCopied ? (
+                            <CheckIcon size={16} className="text-green-500" />
+                          ) : (
+                            <CopyIcon size={16} />
+                          )}
+                          <span className="ml-1 hidden sm:inline">
+                            {isCopied ? "Copied" : "Copy"}
+                          </span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleDownload}
+                        >
+                          <DownloadIcon size={16} />
+                          <span className="ml-1 hidden sm:inline">
+                            Download
+                          </span>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Content Area */}
+                <div
+                  ref={contentRef}
+                  className="flex-1 overflow-y-auto p-6 bg-background"
+                >
+                  {generatedDraft ? (
+                    <div className="max-w-4xl mx-auto bg-card shadow-sm rounded-lg border border-border p-8 min-h-full">
+                      <HtmlRenderer htmlContent={generatedDraft} />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="flex items-center gap-3 text-muted-foreground bg-muted/50 px-4 py-2 rounded-full">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        <span>Generating your draft...</span>
+                      </div>
+                    </div>
                   )}
                 </div>
-                {generatedDraft && (
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={handleCopy}>
-                      {isCopied ? (
-                        <CheckIcon size={16} className="text-green-500" />
-                      ) : (
-                        <CopyIcon size={16} />
-                      )}
-                      <span className="ml-1">
-                        {isCopied ? "Copied" : "Copy"}
-                      </span>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={handleDownload}>
-                      <DownloadIcon size={16} />
-                      <span className="ml-1">Download</span>
-                    </Button>
-                  </div>
-                )}
               </div>
 
-              {/* Content */}
-              <div ref={textAreaRef} className="flex-1 overflow-y-auto p-6">
-                {!generatedDraft && !isGenerating ? (
-                  <div className="flex h-full flex-col items-center justify-center text-center">
-                    <div className="mb-4 rounded-full bg-primary/10 p-4">
-                      <DrafterIcon size={32} className="text-primary" />
+              {/* Input Area at Bottom */}
+              <div className="border-t border-border bg-background p-4 shrink-0">
+                <div className="mx-auto max-w-3xl space-y-3">
+                  {/* Template Suggestions (Disabled after generation) */}
+                  <div className="flex flex-wrap gap-2">
+                    {templateSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        disabled={isReadOnly || isLoading}
+                        className={cn(
+                          "rounded-full border border-border bg-accent/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors",
+                          "hover:border-primary/50 hover:text-foreground hover:bg-primary/5",
+                          "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent/50 disabled:hover:text-muted-foreground disabled:hover:border-border",
+                        )}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Compact Input with Send Button */}
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <SparklesIcon
+                        size={18}
+                        className={cn(
+                          "transition-colors",
+                          isLoading
+                            ? "animate-pulse text-primary"
+                            : "text-muted-foreground",
+                        )}
+                      />
                     </div>
-                    <h3 className="mb-2 text-lg font-semibold text-foreground">
-                      Ready to Draft
-                    </h3>
-                    <p className="max-w-md text-sm text-muted-foreground">
-                      Describe the legal document you need in the prompt above.
-                      Our AI will generate a professional draft tailored to your
-                      requirements.
+                    <textarea
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Prompt is disabled after generation..."
+                      rows={3}
+                      disabled={isReadOnly || isLoading}
+                      className={cn(
+                        "w-full rounded-xl border border-border bg-background px-12 py-3 pr-14 text-sm text-foreground placeholder:text-muted-foreground resize-none",
+                        "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm",
+                        "disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-muted/30",
+                      )}
+                    />
+                    <div className="absolute bottom-2 right-2">
+                      <button
+                        onClick={handleGenerate}
+                        disabled={!prompt.trim() || isLoading || isReadOnly}
+                        className={cn(
+                          "rounded-lg p-2 transition-all flex items-center justify-center",
+                          !prompt.trim() || isLoading || isReadOnly
+                            ? "bg-muted text-muted-foreground cursor-not-allowed"
+                            : "bg-primary text-primary-foreground hover:bg-primary/90",
+                        )}
+                      >
+                        {isLoading ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <SendIcon size={16} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground">
+                      Press <span className="font-semibold">Ctrl + Enter</span>{" "}
+                      to generate
                     </p>
                   </div>
-                ) : (
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <pre className="whitespace-pre-wrap font-sans text-sm text-foreground leading-relaxed">
-                      {generatedDraft}
-                      {isGenerating && <span className="animate-pulse">▊</span>}
-                    </pre>
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </main>
       </div>
     </div>

@@ -36,6 +36,8 @@ export interface Session {
   updatedAt: Date;
   type: SessionType;
   conversation?: ChatMessage[];
+  draft?: string;
+  requirements?: string;
 }
 
 // Session Sidebar Props

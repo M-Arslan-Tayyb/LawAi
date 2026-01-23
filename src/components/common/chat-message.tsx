@@ -53,7 +53,7 @@ export function ChatMessage({
           "relative max-w-[80%] rounded-2xl px-4 py-3",
           isAssistant
             ? "bg-accent text-foreground rounded-tl-none"
-            : "bg-primary text-primary-foreground rounded-tr-none",
+            : "bg-primary/20 text-primary-foreground rounded-tr-none",
         )}
       >
         {children ? (
@@ -67,7 +67,7 @@ export function ChatMessage({
         {isAssistant && (
           <button
             onClick={handleCopy}
-            className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 rounded-md p-1.5 transition-opacity hover:bg-black/10 dark:hover:bg-white/10"
+            className="ml-auto flex items-end rounded-md p-1.5 transition-opacity hover:bg-black/10 dark:hover:bg-white/10"
             title="Copy"
           >
             {isCopied ? (

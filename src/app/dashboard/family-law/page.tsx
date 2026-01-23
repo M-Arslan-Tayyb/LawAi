@@ -41,10 +41,9 @@ export default function FamilyLawPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Use the AI streaming hook
   const { streamedContent, isStreaming, streamText, resetStream } = useAiStream(
     {
-      streamSpeed: 20,
+      streamSpeed: 30,
       chunkSize: 3,
     },
   );

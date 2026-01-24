@@ -1,11 +1,11 @@
 "use client";
 
-import type React from "react";
-import { useState, useRef } from "react";
+import { SendIcon } from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import { SendIcon, SparklesIcon } from "@/lib/icons";
-import { Mic, Square, X, Loader2 } from "lucide-react";
 import { useTranscribeAudioMutation } from "@/redux/features/speach-to-text";
+import { Loader2, Mic, Square, X } from "lucide-react";
+import type React from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 type RecordingState = "idle" | "recording" | "processing";
@@ -63,10 +63,8 @@ export function AiChatInput({
 
   const startRecording = async () => {
     try {
-      console.log("[Audio] Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      console.log("[Audio] Microphone access granted.");
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
       isCancelledRef.current = false; // Reset cancel flag
@@ -78,19 +76,16 @@ export function AiChatInput({
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        console.log("[Audio] MediaRecorder stopped.");
         // Always stop tracks to release microphone
         stream.getTracks().forEach((track) => track.stop());
 
         // Check if user cancelled
         if (isCancelledRef.current) {
-          console.log("[Audio] Upload skipped: Cancelled by user.");
           isCancelledRef.current = false;
           return;
         }
 
         // Proceed with upload
-        console.log("[Audio] Processing audio data...");
         await uploadAudio();
       };
 
@@ -98,13 +93,11 @@ export function AiChatInput({
       setRecordingState("recording");
       toast.info("Recording started... Click Stop to finish.");
     } catch (error) {
-      console.error("[Audio] Error accessing microphone:", error);
       toast.error("Could not access microphone. Please check permissions.");
     }
   };
 
   const stopRecording = () => {
-    console.log("[Audio] User clicked Stop.");
     setRecordingState("processing");
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
@@ -112,7 +105,6 @@ export function AiChatInput({
   };
 
   const cancelRecording = () => {
-    console.log("[Audio] User clicked Cancel.");
     isCancelledRef.current = true;
     setRecordingState("idle");
     if (mediaRecorderRef.current) {
@@ -121,15 +113,11 @@ export function AiChatInput({
   };
 
   const uploadAudio = async () => {
-    console.log("[Audio] Creating Blob from chunks...");
     const audioBlob = new Blob(audioChunksRef.current, {
       type: "audio/webm",
     });
 
-    console.log("[Audio] Blob size:", audioBlob.size);
-
     if (audioBlob.size === 0) {
-      console.error("[Audio] Blob is empty. Skipping upload.");
       toast.error("Recording was empty. Please try again.");
       setRecordingState("idle");
       return;
@@ -139,12 +127,9 @@ export function AiChatInput({
     formData.append("audio", audioBlob, "recording.webm");
 
     // Log FormData keys to verify payload
-    console.log("[Audio] FormData Keys:", Array.from(formData.keys()));
 
     try {
-      console.log("[Audio] Calling RTK Query mutation...");
       const response = await transcribeAudio(formData).unwrap();
-      console.log("[Audio] RTK Query Response:", response);
 
       // Safely handle data which can be T | T[]
       const dataPayload = response.data;
@@ -153,23 +138,16 @@ export function AiChatInput({
         : dataPayload?.transcription;
 
       if (response.succeeded && transcription) {
-        console.log("[Audio] Transcription text:", transcription);
         handleSetValue((message || "") + " " + transcription);
         toast.success("Transcription complete");
       } else {
-        console.error(
-          "[Audio] API succeeded but no transcription found.",
-          response,
-        );
         toast.error("Failed to transcribe audio text");
       }
     } catch (error: any) {
-      console.error("[Audio] Transcription API Error:", error);
       const errorMsg =
         error?.data?.message || error?.message || "Error transcribing audio";
       toast.error(errorMsg);
     } finally {
-      console.log("[Audio] Upload process finished. Resetting state.");
       setRecordingState("idle");
     }
   };

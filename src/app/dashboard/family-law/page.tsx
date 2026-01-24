@@ -31,6 +31,7 @@ import { familyLawFAQs } from "@/lib/data/GeneralData";
 export default function FamilyLawPage() {
   const { data: sessionData } = useAuthSession();
   const userId = sessionData?.user?.userId as string;
+
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -51,7 +52,7 @@ export default function FamilyLawPage() {
   // RTK Query hooks
   const { data: sessionsData } = useGetFamilyLawSessionsQuery(
     { user_id: Number(userId) },
-    { refetchOnMountOrArgChange: true },
+    { refetchOnMountOrArgChange: true, skip: !userId },
   );
   const [getMessages] = useLazyGetFamilyLawMessagesQuery();
   const [queryAgent, { isLoading: isAgentLoading }] =
@@ -287,6 +288,7 @@ export default function FamilyLawPage() {
                     onSend={handleSendMessage}
                     placeholder="Ask about family law (e.g., 'How does child custody work?')..."
                     isLoading={isLoading}
+                    disabled={!userId} // Disable until userId loads
                   />
                 </div>
 
@@ -352,6 +354,7 @@ export default function FamilyLawPage() {
                     onSend={handleSendMessage}
                     placeholder="Ask another question..."
                     isLoading={isLoading}
+                    disabled={!userId}
                   />
                 </div>
               </div>

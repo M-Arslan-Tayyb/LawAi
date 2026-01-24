@@ -4,18 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { SessionSidebar } from "@/components/common/session-sidebar";
 import { FullscreenToggle } from "@/components/common/fullscreen-toggle";
 import { HtmlRenderer } from "@/components/common/html-renderer";
-import {
-  DrafterIcon,
-  SparklesIcon,
-  CopyIcon,
-  DownloadIcon,
-  CheckIcon,
-  SendIcon,
-} from "@/lib/icons";
+import { AiChatInput } from "@/components/common/ai-chat-input";
+import { DrafterIcon, CopyIcon, DownloadIcon, CheckIcon } from "@/lib/icons";
 import { FileTextIcon } from "lucide-react";
 import type { Session } from "@/types/genericTypes";
 import { toast } from "sonner";
 import { cn, generateId } from "@/lib/utils";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import {
   useGenerateDraftMutation,
   useGetDraftsQuery,
@@ -33,8 +28,8 @@ const templateSuggestions = [
 ];
 
 export default function DrafterPage() {
-  // Get user_id from your auth context/store
-  const userId = 3; // TODO: Replace with actual user ID from auth
+  const { data: sessionData } = useAuthSession();
+  const userId = sessionData?.user?.userId as string;
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
@@ -46,10 +41,9 @@ export default function DrafterPage() {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // RTK Query hooks
   const { data: draftsData, refetch: refetchDrafts } = useGetDraftsQuery(
-    { user_id: userId },
-    { refetchOnMountOrArgChange: true },
+    { user_id: Number(userId) },
+    { refetchOnMountOrArgChange: true, skip: !userId },
   );
   const [generateDraft, { isLoading: isDraftLoading }] =
     useGenerateDraftMutation();
@@ -57,7 +51,6 @@ export default function DrafterPage() {
   // Transform API data to sessions
   useEffect(() => {
     if (draftsData?.succeeded && draftsData.data) {
-      // Handle both array and object responses
       const dataArray = Array.isArray(draftsData.data)
         ? (draftsData.data as DrafterDraft[])
         : [draftsData.data as DrafterDraft];
@@ -87,12 +80,11 @@ export default function DrafterPage() {
     setActiveSession(session);
     setPrompt(session.requirements || "");
     setGeneratedDraft(session.draft || "");
-    setIsReadOnly(true); // Set read-only when loading a session
+    setIsReadOnly(true);
     toast.success(`Loaded draft: ${session.title}`);
   };
 
   const handleDeleteSession = (sessionId: string) => {
-    // TODO: Implement delete API call if available
     setSessions(sessions.filter((s) => s.id !== sessionId));
     if (activeSession?.id === sessionId) {
       setActiveSession(null);
@@ -115,20 +107,18 @@ export default function DrafterPage() {
 
     try {
       const response = await generateDraft({
-        user_id: userId,
+        user_id: Number(userId),
         requirements: prompt,
       }).unwrap();
 
       if (response.succeeded && response.data) {
-        // Handle both array and object responses
         const responseData = Array.isArray(response.data)
           ? (response.data[0] as DrafterGenerateResponse)
           : (response.data as DrafterGenerateResponse);
 
         setGeneratedDraft(responseData.draft);
-        setIsReadOnly(true); // Enable read-only mode immediately after successful generation
+        setIsReadOnly(true);
 
-        // Add to sessions
         const newSession: Session = {
           id: generateId(),
           title: prompt.slice(0, 40) + (prompt.length > 40 ? "..." : ""),
@@ -141,9 +131,7 @@ export default function DrafterPage() {
         setSessions([newSession, ...sessions]);
         setActiveSession(newSession);
 
-        // Refetch drafts to get the latest data
         refetchDrafts();
-
         toast.success("Draft generated successfully!");
       } else {
         toast.error(response.message || "Failed to generate draft");
@@ -182,10 +170,9 @@ export default function DrafterPage() {
     );
   };
 
-  // Handle Ctrl+Enter to generate
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault(); // Prevent adding a newline
+      e.preventDefault();
       handleGenerate();
     }
   };
@@ -205,7 +192,6 @@ export default function DrafterPage() {
         isFullscreen && "fullscreen-mode",
       )}
     >
-      {/* Session Sidebar */}
       {!isFullscreen && (
         <SessionSidebar
           sessions={sessions}
@@ -217,9 +203,7 @@ export default function DrafterPage() {
         />
       )}
 
-      {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Module Header */}
         <div className="flex items-center justify-between border-b border-border bg-background px-4 py-3 lg:px-6 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -242,10 +226,9 @@ export default function DrafterPage() {
 
         <main className="flex flex-1 flex-col overflow-hidden relative">
           {!generatedDraft && !isLoading ? (
-            // Empty state - input centered
+            // Empty State (Centered Input)
             <div className="flex flex-1 items-center justify-center p-4 lg:p-6 overflow-y-auto">
               <div className="w-full max-w-3xl space-y-6">
-                {/* Template Suggestions */}
                 <div className="flex flex-wrap gap-2 justify-center">
                   {templateSuggestions.map((suggestion) => (
                     <button
@@ -258,35 +241,19 @@ export default function DrafterPage() {
                   ))}
                 </div>
 
-                {/* Custom Input Area with Send Button */}
                 <div className="relative group">
-                  <textarea
+                  <AiChatInput
                     value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={handleKeyDown}
+                    onChange={setPrompt}
+                    onSend={handleGenerate}
                     placeholder="E.g., Draft a non-disclosure agreement for a software development project..."
+                    inputType="textarea"
                     rows={6}
-                    className="w-full rounded-xl border border-border bg-background px-4 py-4 pr-14 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                    isLoading={isLoading}
+                    disabled={!userId}
                   />
-                  <div className="absolute bottom-3 right-3">
-                    <button
-                      onClick={handleGenerate}
-                      disabled={!prompt.trim() || isLoading}
-                      className={cn(
-                        "rounded-lg p-2 transition-all flex items-center justify-center",
-                        !prompt.trim() || isLoading
-                          ? "bg-muted text-muted-foreground cursor-not-allowed"
-                          : "bg-primary/30 text-primary-foreground hover:bg-primary/40 shadow-md hover:shadow-lg",
-                      )}
-                    >
-                      {isLoading ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      ) : (
-                        <SendIcon size={16} />
-                      )}
-                    </button>
-                  </div>
-                  <div className="absolute bottom-3 left-4 text-xs text-muted-foreground pointer-events-none">
+
+                  <div className="absolute -bottom-6 left-4 text-xs text-muted-foreground pointer-events-none">
                     Press <span className="font-medium">Ctrl + Enter</span> to
                     generate
                   </div>
@@ -294,11 +261,9 @@ export default function DrafterPage() {
               </div>
             </div>
           ) : (
-            // Full view mode - input at bottom
+            // Full View
             <>
-              {/* Generated Draft Section (Full View) */}
               <div className="flex flex-1 flex-col overflow-hidden">
-                {/* Draft Header */}
                 <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3 shrink-0">
                   <div className="flex items-center gap-2">
                     <FileTextIcon size={18} className="text-primary" />
@@ -307,7 +272,6 @@ export default function DrafterPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    {/* Read-only Badge positioned top right */}
                     {isReadOnly && (
                       <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-400">
                         Read-only
@@ -340,7 +304,6 @@ export default function DrafterPage() {
                   </div>
                 </div>
 
-                {/* Content Area */}
                 <div
                   ref={contentRef}
                   className="flex-1 overflow-y-auto p-6 bg-background"
@@ -360,80 +323,50 @@ export default function DrafterPage() {
                 </div>
               </div>
 
-              {/* Input Area at Bottom */}
-              <div className="border-t border-border bg-background p-4 shrink-0">
-                <div className="mx-auto max-w-3xl space-y-3">
-                  {/* Template Suggestions (Disabled after generation) */}
-                  <div className="flex flex-wrap gap-2">
-                    {templateSuggestions.map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        disabled={isReadOnly || isLoading}
-                        className={cn(
-                          "rounded-full border border-border bg-accent/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors",
-                          "hover:border-primary/50 hover:text-foreground hover:bg-primary/5",
-                          "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent/50 disabled:hover:text-muted-foreground disabled:hover:border-border",
-                        )}
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
+              {/* Bottom Input Area */}
+              {/* Conditionally render: Only show if generatedDraft is NOT present (or loading) */}
+              {!generatedDraft && (
+                <div className="border-t border-border bg-background p-4 shrink-0">
+                  <div className="mx-auto max-w-3xl space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      {templateSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          disabled={isReadOnly || isLoading}
+                          className={cn(
+                            "rounded-full border border-border bg-accent/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors",
+                            "hover:border-primary/50 hover:text-foreground hover:bg-primary/5",
+                            "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent/50 disabled:hover:text-muted-foreground disabled:hover:border-border",
+                          )}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
 
-                  {/* Compact Input with Send Button */}
-                  <div className="relative group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <SparklesIcon
-                        size={18}
-                        className={cn(
-                          "transition-colors",
-                          isLoading
-                            ? "animate-pulse text-primary"
-                            : "text-muted-foreground",
-                        )}
+                    <div className="relative group">
+                      <AiChatInput
+                        value={prompt}
+                        onChange={setPrompt}
+                        onSend={handleGenerate}
+                        placeholder="E.g., Draft a non-disclosure agreement for a software development project..."
+                        inputType="textarea"
+                        rows={6}
+                        isLoading={isLoading}
+                        disabled={!userId}
                       />
                     </div>
-                    <textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Prompt is disabled after generation..."
-                      rows={3}
-                      disabled={isReadOnly || isLoading}
-                      className={cn(
-                        "w-full rounded-xl border border-border bg-background px-12 py-3 pr-14 text-sm text-foreground placeholder:text-muted-foreground resize-none",
-                        "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm",
-                        "disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-muted/30",
-                      )}
-                    />
-                    <div className="absolute bottom-2 right-2">
-                      <button
-                        onClick={handleGenerate}
-                        disabled={!prompt.trim() || isLoading || isReadOnly}
-                        className={cn(
-                          "rounded-lg p-2 transition-all flex items-center justify-center",
-                          !prompt.trim() || isLoading || isReadOnly
-                            ? "bg-muted text-muted-foreground cursor-not-allowed"
-                            : "bg-primary text-primary-foreground hover:bg-primary/90",
-                        )}
-                      >
-                        {isLoading ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <SendIcon size={16} />
-                        )}
-                      </button>
+                    <div className="text-center">
+                      <p className="text-[10px] text-muted-foreground">
+                        Press{" "}
+                        <span className="font-semibold">Ctrl + Enter</span> to
+                        generate
+                      </p>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground">
-                      Press <span className="font-semibold">Ctrl + Enter</span>{" "}
-                      to generate
-                    </p>
-                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </main>

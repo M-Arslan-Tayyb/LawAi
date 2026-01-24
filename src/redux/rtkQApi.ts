@@ -29,9 +29,15 @@ const axiosBaseQuery: BaseQueryFn<AxiosBaseQueryArgs> = async ({
   customtoken,
 }: AxiosBaseQueryArgs) => {
   let headers: { [key: string]: string } = {
-    "Content-type": "application/json; charset=UTF-8",
     ...customHeader,
   };
+
+  // FIX: Only set Content-Type to JSON if data is NOT FormData
+  if (!(data instanceof FormData)) {
+    headers["Content-type"] = "application/json; charset=UTF-8";
+  }
+  // If data IS FormData, we do NOT set Content-Type manually.
+  // Axios will set it to 'multipart/form-data; boundary=...' automatically.
 
   if (customtoken) {
     headers = {
@@ -57,12 +63,16 @@ const axiosBaseQuery: BaseQueryFn<AxiosBaseQueryArgs> = async ({
     }
     throw resp.data;
   } catch (error: any) {
-    // Handle 401 unauthorized - sign out user
     if (error.response?.status === 401 && customtoken) {
       await signOut({ callbackUrl: "/" });
     }
+
     return {
-      error: error?.response,
+      error: {
+        status: error.response?.status,
+        data:
+          error.response?.data || error.message || "An unknown error occurred",
+      },
     };
   }
 };

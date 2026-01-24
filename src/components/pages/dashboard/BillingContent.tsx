@@ -76,7 +76,6 @@ const currentSubscription = {
   nextBillingDate: null,
   cancelAtPeriodEnd: false,
 };
-console.log(currentSubscription);
 export function BillingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -187,7 +186,8 @@ export function BillingContent() {
                 plan.popular
                   ? "border-primary/50 shadow-lg shadow-primary/10 scale-105"
                   : plan.borderColor,
-                currentSubscription.plan === plan.id && "ring-2 ring-primary/50"
+                currentSubscription.plan === plan.id &&
+                  "ring-2 ring-primary/50",
               )}
             >
               {/* Current Plan Badge */}
@@ -208,7 +208,7 @@ export function BillingContent() {
               <div
                 className={cn(
                   "absolute inset-0 -z-10 bg-gradient-to-br opacity-0 transition-opacity duration-300 group-hover:opacity-100",
-                  plan.gradient
+                  plan.gradient,
                 )}
               />
 
@@ -270,22 +270,22 @@ export function BillingContent() {
                     currentSubscription.plan === plan.id
                       ? "outline"
                       : plan.popular
-                      ? "default"
-                      : plan.buttonVariant
+                        ? "default"
+                        : plan.buttonVariant
                   }
                   disabled={currentSubscription.plan === plan.id}
                   className={cn(
                     "w-full h-11 text-sm font-semibold transition-all",
                     plan.popular &&
                       currentSubscription.plan !== plan.id &&
-                      "glow-primary-hover"
+                      "glow-primary-hover",
                   )}
                 >
                   {currentSubscription.plan === plan.id
                     ? "Current Plan"
                     : plan.price === "£0"
-                    ? "Get Started"
-                    : "Choose Plan"}
+                      ? "Get Started"
+                      : "Choose Plan"}
                 </Button>
               </div>
 

@@ -1,26 +1,21 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Dropdown, Avatar } from "antd";
-import type { MenuProps } from "antd";
-import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/constants";
 import {
-  DashboardIcon,
-  CompareIcon,
-  DrafterIcon,
   AnalyzeIcon,
-  SummaryIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  SettingsIcon,
-  LogoutIcon,
-  UserIcon,
+  CompareIcon,
+  CreditCardIcon,
+  DashboardIcon,
+  DrafterIcon,
   FamilyLawIcon,
   ImmigrationLawIcon,
-  CreditCardIcon,
+  SummaryIcon,
 } from "@/lib/icons";
-import { ROUTES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 interface MainSidebarProps {
   collapsed?: boolean;
@@ -41,6 +36,12 @@ const menuItems = [
     href: ROUTES.FAMILY_LAW,
   },
   {
+    key: "drafter",
+    label: "AI Drafter",
+    icon: DrafterIcon,
+    href: ROUTES.DRAFTER,
+  },
+  {
     key: "immigration-law",
     label: "Immigration Law",
     icon: ImmigrationLawIcon,
@@ -52,12 +53,7 @@ const menuItems = [
     icon: CompareIcon,
     href: ROUTES.DOCUMENT_COMPARISON,
   },
-  {
-    key: "drafter",
-    label: "AI Drafter",
-    icon: DrafterIcon,
-    href: ROUTES.DRAFTER,
-  },
+
   {
     key: "document-analyzer",
     label: "Document Analyzer",
@@ -89,7 +85,7 @@ export function MainSidebar({
     <aside
       className={cn(
         "relative flex flex-col border-r border-border bg-sidebar transition-all duration-300 ease-in-out h-full",
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-16" : "w-64",
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -103,7 +99,7 @@ export function MainSidebar({
             "border border-border bg-background text-muted-foreground",
             "transition-all hover:bg-accent hover:text-foreground",
             "shadow-sm",
-            !isHovered && collapsed && "opacity-0"
+            !isHovered && collapsed && "opacity-0",
           )}
         >
           {collapsed ? (
@@ -133,7 +129,7 @@ export function MainSidebar({
                     isActive
                       ? "bg-primary/10 text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground",
-                    collapsed && "justify-center px-2"
+                    collapsed && "justify-center px-2",
                   )}
                   title={collapsed ? item.label : undefined}
                 >

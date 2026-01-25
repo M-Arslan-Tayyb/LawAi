@@ -86,14 +86,14 @@ export function SessionSidebar<T extends Session>({
                   <button
                     onClick={() => onSessionSelect?.(session)}
                     className={cn(
-                      "group w-full rounded-lg p-3 text-left transition-all relative",
+                      "group w-full rounded-lg p-2 text-left transition-all relative",
                       "hover:bg-accent/50",
                       activeSessionId === session.id
                         ? "bg-primary/10 border border-primary/20"
                         : "border border-transparent",
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p
                           className={cn(
@@ -104,10 +104,6 @@ export function SessionSidebar<T extends Session>({
                           )}
                         >
                           {truncateText(session.title, 22)}
-                        </p>
-
-                        <p className="mt-1.5 text-xs text-muted-foreground/70">
-                          {formatDate(session.createdAt)}
                         </p>
                       </div>
                       {onDeleteSession && (

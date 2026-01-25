@@ -17,7 +17,6 @@ import {
 } from "@/redux/features/drafter";
 import { DrafterDraft, DrafterGenerateResponse } from "@/types/DrafterTypes";
 import { Button } from "@/components/ui/button";
-
 const templateSuggestions = [
   "Non-Disclosure Agreement (NDA)",
   "Employment Contract",
@@ -152,16 +151,41 @@ export default function DrafterPage() {
   };
 
   const handleDownload = () => {
-    const blob = new Blob([generatedDraft], { type: "text/html" });
+    const htmlWrapper = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
+        <style>
+          @page { size: auto; margin: 1cm; }
+          body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; }
+          h1, h2, h3 { color: #2c3e50; margin-top: 0.5em; }
+          strong { font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        ${generatedDraft}
+      </body>
+      </html>
+    `;
+
+    // 2. Create Blob
+    const blob = new Blob([htmlWrapper], {
+      type: "application/msword",
+    });
+
+    // 3. Download
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "legal-draft.html";
+    a.download = "legal-draft.doc";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Draft downloaded!");
+
+    toast.success("Document downloaded successfully!");
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -252,11 +276,6 @@ export default function DrafterPage() {
                     isLoading={isLoading}
                     disabled={!userId}
                   />
-
-                  <div className="absolute -bottom-6 left-4 text-xs text-muted-foreground pointer-events-none">
-                    Press <span className="font-medium">Ctrl + Enter</span> to
-                    generate
-                  </div>
                 </div>
               </div>
             </div>
@@ -324,7 +343,6 @@ export default function DrafterPage() {
               </div>
 
               {/* Bottom Input Area */}
-              {/* Conditionally render: Only show if generatedDraft is NOT present (or loading) */}
               {!generatedDraft && (
                 <div className="border-t border-border bg-background p-4 shrink-0">
                   <div className="mx-auto max-w-3xl space-y-3">

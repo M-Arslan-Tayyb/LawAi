@@ -39,7 +39,7 @@ export function LoginForm() {
       }
 
       if (result?.ok) {
-        toast.success("Welcome back! Redirecting to dashboard...");
+        toast.success("Login Successfully! Redirecting to dashboard...");
 
         // Small delay to show success message
         await new Promise((resolve) => setTimeout(resolve, 500));

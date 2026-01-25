@@ -270,30 +270,8 @@ export default function FamilyLawPage() {
             // Empty state - input centered
             <div className="flex flex-1 items-center justify-center p-2 lg:p-4">
               <div className="w-full max-w-3xl">
-                <div className="mb-8 text-center">
-                  <div className="mb-4 inline-flex items-center justify-center rounded-full bg-primary/10 p-4">
-                    <FamilyLawIcon size={32} className="text-primary" />
-                  </div>
-                  <h2 className="mb-2 text-xl font-semibold text-foreground">
-                    Family Law Assistant
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Ask questions about divorce, custody, adoption, and other
-                    family law matters
-                  </p>
-                </div>
-
-                <div className="mb-6">
-                  <AiChatInput
-                    onSend={handleSendMessage}
-                    placeholder="Ask about family law (e.g., 'How does child custody work?')..."
-                    isLoading={isLoading}
-                    disabled={!userId} // Disable until userId loads
-                  />
-                </div>
-
                 {/* FAQ Badges */}
-                <div className="flex flex-wrap justify-center gap-2">
+                <div className="flex flex-wrap justify-center gap-2 mb-6">
                   {familyLawFAQs.map((faq, index) => (
                     <button
                       key={index}
@@ -304,6 +282,14 @@ export default function FamilyLawPage() {
                       {faq}
                     </button>
                   ))}
+                </div>
+                <div className="mb-6">
+                  <AiChatInput
+                    onSend={handleSendMessage}
+                    placeholder="Ask about family law (e.g., 'How does child custody work?')..."
+                    isLoading={isLoading}
+                    disabled={!userId} // Disable until userId loads
+                  />
                 </div>
               </div>
             </div>

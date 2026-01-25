@@ -14,6 +14,7 @@ import {
   ImmigrationLawIcon,
 } from "@/lib/icons";
 import { ROUTES } from "@/lib/constants";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 const modules = [
   {
@@ -111,14 +112,19 @@ const stats = [
 ];
 
 export default function DashboardPage() {
+  const { data: sessionData } = useAuthSession();
   return (
     <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-base sm:text-lg font-medium text-foreground">
-          Welcome back, John.{" "}
-          <span className="text-primary font-semibold">Here's</span> your legal
-          AI workspace.
+      <div className="mb-8">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground">
+          Welcome,{" "}
+          <span className="text-primary font-bold">
+            {sessionData?.user?.name}
+          </span>
+        </h1>
+
+        <p className="mt-2 text-sm sm:text-base text-muted-foreground">
+          Your AI-powered legal workspace is ready.
         </p>
       </div>
 

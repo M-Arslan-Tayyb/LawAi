@@ -3,9 +3,9 @@
 import { SendIcon } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { useTranscribeAudioMutation } from "@/redux/features/speach-to-text";
-import { Loader2, Mic, Square, X } from "lucide-react";
+import { Loader2, Mic, X, Check } from "lucide-react";
 import type React from "react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react"; // Added useEffect
 import { toast } from "sonner";
 
 type RecordingState = "idle" | "recording" | "processing";
@@ -36,14 +36,23 @@ export function AiChatInput({
   const [internalMessage, setInternalMessage] = useState("");
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
 
+  // Ref for the input element to force focus
+  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const isCancelledRef = useRef(false); // Robust tracking for cancellation
+  const isCancelledRef = useRef(false);
 
   const [transcribeAudio] = useTranscribeAudioMutation();
 
   const isControlled = externalValue !== undefined;
   const message = isControlled ? externalValue : internalMessage;
+
+  // Ensure focus stays on input when recording starts
+  useEffect(() => {
+    if (recordingState === "recording") {
+      inputRef.current?.focus();
+    }
+  }, [recordingState]);
 
   const handleSetValue = (newValue: string) => {
     if (isControlled && externalOnChange) {
@@ -55,9 +64,38 @@ export function AiChatInput({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim() && !disabled && !isLoading) {
+    if (
+      message.trim() &&
+      !disabled &&
+      !isLoading &&
+      recordingState === "idle"
+    ) {
       onSend?.(message.trim());
       handleSetValue("");
+    }
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    if (e.key === "Enter") {
+      if (recordingState === "recording") {
+        // FIX: While recording, Enter sends audio
+        e.preventDefault();
+        e.stopPropagation(); // Stop bubbling to prevent other handlers
+        confirmRecording();
+      } else {
+        // Standard text logic
+        if (e.shiftKey) {
+          return; // Shift+Enter -> New line
+        } else {
+          e.preventDefault();
+          if (message.trim() && !disabled && !isLoading) {
+            onSend?.(message.trim());
+            handleSetValue("");
+          }
+        }
+      }
     }
   };
 
@@ -67,7 +105,7 @@ export function AiChatInput({
 
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
-      isCancelledRef.current = false; // Reset cancel flag
+      isCancelledRef.current = false;
 
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -76,28 +114,25 @@ export function AiChatInput({
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        // Always stop tracks to release microphone
         stream.getTracks().forEach((track) => track.stop());
 
-        // Check if user cancelled
         if (isCancelledRef.current) {
           isCancelledRef.current = false;
           return;
         }
 
-        // Proceed with upload
         await uploadAudio();
       };
 
       mediaRecorderRef.current.start();
       setRecordingState("recording");
-      toast.info("Recording started... Click Stop to finish.");
+      toast.info("Recording started... Press Enter to stop.");
     } catch (error) {
       toast.error("Could not access microphone. Please check permissions.");
     }
   };
 
-  const stopRecording = () => {
+  const confirmRecording = () => {
     setRecordingState("processing");
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
@@ -110,6 +145,7 @@ export function AiChatInput({
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
+    toast.info("Recording cancelled");
   };
 
   const uploadAudio = async () => {
@@ -126,12 +162,9 @@ export function AiChatInput({
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.webm");
 
-    // Log FormData keys to verify payload
-
     try {
       const response = await transcribeAudio(formData).unwrap();
 
-      // Safely handle data which can be T | T[]
       const dataPayload = response.data;
       const transcription = Array.isArray(dataPayload)
         ? dataPayload[0]?.transcription
@@ -160,31 +193,41 @@ export function AiChatInput({
         {/* Input Element */}
         {inputType === "textarea" ? (
           <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>} // Ref assignment
             value={message}
             onChange={(e) => handleSetValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            disabled={isDisabled || recordingState !== "idle"}
+            disabled={isDisabled}
+            readOnly={recordingState === "recording"}
             rows={rows}
             className={cn(
               "w-full rounded-xl border border-border bg-background py-4 pl-5 pr-36 text-sm text-foreground",
               "placeholder:text-muted-foreground resize-none",
               "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
               "disabled:cursor-not-allowed disabled:opacity-50",
+              recordingState === "recording" &&
+                "opacity-60 bg-muted/30 cursor-wait",
               "transition-all",
             )}
           />
         ) : (
           <input
+            ref={inputRef as React.RefObject<HTMLInputElement>} // Ref assignment
             type="text"
             value={message}
             onChange={(e) => handleSetValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            disabled={isDisabled || recordingState !== "idle"}
+            disabled={isDisabled}
+            readOnly={recordingState === "recording"}
             className={cn(
               "w-full rounded-xl border border-border bg-background py-4 pl-5 pr-36 text-sm text-foreground",
               "placeholder:text-muted-foreground",
               "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
               "disabled:cursor-not-allowed disabled:opacity-50",
+              recordingState === "recording" &&
+                "opacity-60 bg-muted/30 cursor-wait",
               "transition-all",
             )}
           />
@@ -207,15 +250,42 @@ export function AiChatInput({
               )}
 
               {recordingState === "recording" && (
-                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-muted rounded-lg p-1 pr-2 border border-primary/20">
+                  {/* Audio Visualizer */}
+                  <div className="flex items-center gap-0.5 h-4 ml-1">
+                    <div
+                      className="w-0.5 bg-primary animate-[bounce_1s_infinite]"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <div
+                      className="w-0.5 bg-primary animate-[bounce_1.2s_infinite]"
+                      style={{ animationDelay: "200ms" }}
+                    />
+                    <div
+                      className="w-0.5 bg-primary animate-[bounce_0.8s_infinite]"
+                      style={{ animationDelay: "400ms" }}
+                    />
+                    <div
+                      className="w-0.5 bg-primary animate-[bounce_1.1s_infinite]"
+                      style={{ animationDelay: "100ms" }}
+                    />
+                    <div
+                      className="w-0.5 bg-primary animate-[bounce_0.9s_infinite]"
+                      style={{ animationDelay: "300ms" }}
+                    />
+                  </div>
+
+                  {/* Tick Button */}
                   <button
                     type="button"
-                    onClick={stopRecording}
-                    className="p-1.5 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                    title="Stop & Send"
+                    onClick={confirmRecording}
+                    className="p-1.5 rounded-md bg-green-100 text-green-600 hover:bg-green-200 transition-colors ml-2"
+                    title="Confirm & Transcribe (Enter)"
                   >
-                    <Square size={14} fill="currentColor" />
+                    <Check size={14} />
                   </button>
+
+                  {/* Cross Button */}
                   <button
                     type="button"
                     onClick={cancelRecording}
@@ -259,6 +329,18 @@ export function AiChatInput({
           )}
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes bounce {
+          0%,
+          100% {
+            height: 2px;
+          }
+          50% {
+            height: 16px;
+          }
+        }
+      `}</style>
     </form>
   );
 }
